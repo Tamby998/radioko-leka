@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -14,13 +15,14 @@ import (
 const defaultEndpoint = "https://all.api.radio-browser.info"
 
 type Station struct {
-	ID       string `json:"stationuuid"`
-	Name     string `json:"name"`
-	URL      string `json:"url_resolved"`
-	Country  string `json:"country"`
-	Language string `json:"language"`
-	Codec    string `json:"codec"`
-	Bitrate  int    `json:"bitrate"`
+	ID          string `json:"stationuuid"`
+	Name        string `json:"name"`
+	URL         string `json:"url_resolved"`
+	Country     string `json:"country"`
+	CountryCode string `json:"countrycode"`
+	Language    string `json:"language"`
+	Codec       string `json:"codec"`
+	Bitrate     int    `json:"bitrate"`
 }
 
 type Client struct {
@@ -52,7 +54,31 @@ func (c *Client) Search(ctx context.Context, query string, limit int) ([]Station
 	params.Set("reverse", "true")
 	params.Set("limit", strconv.Itoa(limit))
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.endpoint+"/json/stations/search?"+params.Encode(), nil)
+	stations, err := c.get(ctx, "/json/stations/search?"+params.Encode())
+	if err != nil {
+		return nil, err
+	}
+	// Les radios malgaches restent en tête lorsqu'elles correspondent à la recherche.
+	sort.SliceStable(stations, func(i, j int) bool {
+		return strings.EqualFold(stations[i].CountryCode, "MG") && !strings.EqualFold(stations[j].CountryCode, "MG")
+	})
+	return stations, nil
+}
+
+func (c *Client) Madagascar(ctx context.Context, limit int) ([]Station, error) {
+	if limit < 1 {
+		limit = 50
+	}
+	params := url.Values{}
+	params.Set("hidebroken", "true")
+	params.Set("order", "votes")
+	params.Set("reverse", "true")
+	params.Set("limit", strconv.Itoa(limit))
+	return c.get(ctx, "/json/stations/bycountrycodeexact/MG?"+params.Encode())
+}
+
+func (c *Client) get(ctx context.Context, path string) ([]Station, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.endpoint+path, nil)
 	if err != nil {
 		return nil, err
 	}
