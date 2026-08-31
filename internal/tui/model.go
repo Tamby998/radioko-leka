@@ -7,6 +7,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"radioko-leka/internal/player"
 	"radioko-leka/internal/radio"
@@ -30,6 +31,8 @@ type stationResult struct {
 	err      error
 }
 
+type splashDone struct{}
+
 type Model struct {
 	client    *radio.Client
 	player    *player.Player
@@ -43,19 +46,24 @@ type Model struct {
 	message   string
 	playing   *radio.Station
 	width     int
+	booting   bool
 }
 
 func New(client *radio.Client, audio *player.Player, favorites *store.Favorites) Model {
 	return Model{client: client, player: audio, favorites: favorites, screen: screenMadagascar,
-		title: "Radios malgaches 🇲🇬", loading: true, message: "Chargement des radios malgaches…"}
+		title: "Radios malgaches 🇲🇬", loading: true, booting: true, message: "Chargement des radios malgaches…"}
 }
 
-func (m Model) Init() tea.Cmd { return madagascarCmd(m.client) }
+func (m Model) Init() tea.Cmd {
+	return tea.Batch(madagascarCmd(m.client), tea.Tick(1100*time.Millisecond, func(time.Time) tea.Msg { return splashDone{} }))
+}
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
+	case splashDone:
+		m.booting = false
 	case stationResult:
 		m.loading = false
 		if msg.err != nil {
@@ -226,13 +234,17 @@ func searchCmd(client *radio.Client, query string) tea.Cmd {
 }
 
 func (m Model) View() string {
+	if m.booting {
+		return m.splashView()
+	}
 	var b strings.Builder
-	b.WriteString("RADIOKO LEKA — radio malagasy dans le terminal\n")
-	b.WriteString("[h] Madagascar  [/] Recherche  [v] Favoris  [n] En cours\n\n")
-	b.WriteString(m.title + "\n" + strings.Repeat("─", len([]rune(m.title))) + "\n")
+	header := lipgloss.JoinHorizontal(lipgloss.Center, brandStyle.Render("RADIOKO LEKA"), "  ", taglineStyle.Render("NY ONJAM-PEONTSIKA • NOTRE RADIO"))
+	b.WriteString(header + "\n\n")
+	b.WriteString(m.tabsView() + "\n\n")
+	b.WriteString(titleStyle.Render(m.title) + "\n")
 	switch m.screen {
 	case screenSearch:
-		b.WriteString("Recherche : " + m.query + "█\n")
+		b.WriteString(searchStyle.Width(m.contentWidth()-4).Render("🔎  "+m.query+"█") + "\n")
 	case screenNowPlaying:
 		b.WriteString(m.nowPlayingView())
 	default:
@@ -241,10 +253,59 @@ func (m Model) View() string {
 	if m.screen != screenNowPlaying && m.playing != nil {
 		b.WriteString("\n" + m.compactPlayerView())
 	}
-	b.WriteString("\n" + m.message + "\n")
-	b.WriteString("\n↑↓/jk choisir · Entrée lire · f favori · ←→ volume · Espace pause · m mute\n")
-	b.WriteString("x arrêter · q quitter · Moteur: " + m.player.Engine() + "\n")
-	return b.String()
+	style := messageStyle
+	if strings.HasPrefix(m.message, "Erreur") {
+		style = errorStyle
+	}
+	b.WriteString("\n" + style.Render("● "+m.message) + "\n")
+	b.WriteString("\n" + footerStyle.Render("↑↓/jk choisir  •  Entrée lire  •  f favori  •  ←→ volume") + "\n")
+	b.WriteString(footerStyle.Render("Espace pause  •  m mute  •  x arrêter  •  q quitter") + "\n")
+	b.WriteString(footerStyle.Render("moteur "+m.player.Engine()) + "\n")
+	return lipgloss.NewStyle().Padding(1, 2).Render(b.String())
+}
+
+func (m Model) splashView() string {
+	content := lipgloss.NewStyle().Foreground(red).Bold(true).Render(logo) + "\n\n" +
+		taglineStyle.Render("RADIO MALAGASY • LIVE FROM MADAGASCAR") + "\n\n" +
+		footerStyle.Render("Recherche des ondes malgaches…")
+	width, height := m.width, 18
+	if width < 1 {
+		width = 80
+	}
+	return lipgloss.Place(width, height, lipgloss.Center, lipgloss.Center, content)
+}
+
+func (m Model) tabsView() string {
+	tabs := []struct {
+		label  string
+		target screen
+	}{
+		{"H  Madagascar", screenMadagascar}, {"/  Recherche", screenSearch},
+		{"V  Favoris", screenFavorites}, {"N  En cours", screenNowPlaying},
+	}
+	parts := make([]string, 0, len(tabs))
+	for _, tab := range tabs {
+		style := tabStyle
+		if m.screen == tab.target || (tab.target == screenSearch && m.screen == screenResults) {
+			style = activeTab
+		}
+		parts = append(parts, style.Render(tab.label))
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
+}
+
+func (m Model) contentWidth() int {
+	if m.width <= 0 {
+		return 76
+	}
+	width := m.width - 6
+	if width < 40 {
+		return 40
+	}
+	if width > 100 {
+		return 100
+	}
+	return width
 }
 
 func (m Model) stationListView() string {
@@ -264,7 +325,15 @@ func (m Model) stationListView() string {
 			favorite = "★"
 		}
 		details := strings.Trim(strings.Join([]string{station.Country, station.Codec}, " · "), " ·")
-		b.WriteString(fmt.Sprintf("%s%s %s  [%s]\n", cursor, favorite, station.Name, details))
+		mark := favorite
+		if favorite == "★" {
+			mark = favoriteMark.Render(favorite)
+		}
+		row := fmt.Sprintf("%s%s %-38s %s", cursor, mark, station.Name, detailStyle.Render(details))
+		if index == m.cursor {
+			row = selectedRow.Width(m.contentWidth() - 2).Render(row)
+		}
+		b.WriteString(row + "\n")
 	}
 	return b.String()
 }
@@ -279,7 +348,7 @@ func (m Model) compactPlayerView() string {
 	if muted {
 		sound = "muet"
 	}
-	return fmt.Sprintf("%s %s · %s\n", state, m.playing.Name, sound)
+	return playerStyle.Width(m.contentWidth()-6).Render(fmt.Sprintf("%s  %s   •   %s", state, m.playing.Name, sound)) + "\n"
 }
 
 func (m Model) nowPlayingView() string {
@@ -290,5 +359,5 @@ func (m Model) nowPlayingView() string {
 	if m.favorites.Contains(*m.playing) {
 		favorite = "★"
 	}
-	return fmt.Sprintf("\n%s  %s\n%s%s · %s\n", favorite, m.playing.Name, m.compactPlayerView(), m.playing.Country, m.playing.Codec)
+	return fmt.Sprintf("\n%s  %s\n%s%s · %s\n", favoriteMark.Render(favorite), m.playing.Name, m.compactPlayerView(), detailStyle.Render(m.playing.Country), detailStyle.Render(m.playing.Codec))
 }

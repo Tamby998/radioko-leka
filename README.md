@@ -9,6 +9,7 @@ les radios malgaches.
 - radios malgaches prioritaires dans les résultats de recherche ;
 - favoris persistants dans la configuration utilisateur ;
 - écran dédié à la station en cours de lecture ;
+- interface colorée avec écran de lancement et navigation par onglets ;
 - recherche internationale via Radio Browser.
 
 ## Prérequis
