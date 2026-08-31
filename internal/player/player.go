@@ -23,7 +23,11 @@ type Player struct {
 }
 
 func New() *Player {
-	return &Player{engine: findEngine(), volume: 70}
+	return NewWithVolume(70)
+}
+
+func NewWithVolume(volume int) *Player {
+	return &Player{engine: findEngine(), volume: clamp(volume, 0, 100)}
 }
 
 func findEngine() string {

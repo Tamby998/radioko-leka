@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"radioko-leka/internal/radio"
 )
@@ -16,11 +15,11 @@ type Favorites struct {
 
 func OpenFavorites(path string) (*Favorites, error) {
 	if path == "" {
-		configDir, err := os.UserConfigDir()
+		var err error
+		path, err = configPath("favorites.json")
 		if err != nil {
-			return nil, fmt.Errorf("dossier de configuration: %w", err)
+			return nil, err
 		}
-		path = filepath.Join(configDir, "radioko-leka", "favorites.json")
 	}
 	favorites := &Favorites{path: path}
 	data, err := os.ReadFile(path)
@@ -63,34 +62,7 @@ func (f *Favorites) Toggle(station radio.Station) (bool, error) {
 }
 
 func (f *Favorites) save() error {
-	if err := os.MkdirAll(filepath.Dir(f.path), 0700); err != nil {
-		return fmt.Errorf("création du dossier des favoris: %w", err)
-	}
-	data, err := json.MarshalIndent(f.stations, "", "  ")
-	if err != nil {
-		return fmt.Errorf("encodage des favoris: %w", err)
-	}
-	temporary, err := os.CreateTemp(filepath.Dir(f.path), "favorites-*.json")
-	if err != nil {
-		return fmt.Errorf("création du fichier temporaire: %w", err)
-	}
-	temporaryName := temporary.Name()
-	defer os.Remove(temporaryName)
-	if err := temporary.Chmod(0600); err != nil {
-		temporary.Close()
-		return err
-	}
-	if _, err := temporary.Write(data); err != nil {
-		temporary.Close()
-		return fmt.Errorf("écriture des favoris: %w", err)
-	}
-	if err := temporary.Close(); err != nil {
-		return err
-	}
-	if err := os.Rename(temporaryName, f.path); err != nil {
-		return fmt.Errorf("sauvegarde des favoris: %w", err)
-	}
-	return nil
+	return writeJSON(f.path, "favorites-*.json", f.stations)
 }
 
 func stationKey(station radio.Station) string {
