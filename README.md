@@ -8,6 +8,8 @@ les radios malgaches.
 - accueil chargé automatiquement avec les radios de Madagascar ;
 - radios malgaches prioritaires dans les résultats de recherche ;
 - favoris persistants dans la configuration utilisateur ;
+- historique des 30 dernières stations écoutées, sans doublons ;
+- volume mémorisé entre deux lancements ;
 - écran dédié à la station en cours de lecture ;
 - interface colorée avec écran de lancement et navigation par onglets ;
 - recherche internationale via Radio Browser.
@@ -39,6 +41,7 @@ avec les flèches et appuyez de nouveau sur Entrée pour lancer la lecture.
 - `h` : afficher les radios malgaches
 - `/` ou `s` : rechercher une station
 - `v` : afficher les favoris
+- `r` : afficher les stations récemment écoutées
 - `n` : afficher l'écran en cours de lecture
 - `f` : ajouter ou retirer la station des favoris
 - `←` / `→` : diminuer ou augmenter le volume

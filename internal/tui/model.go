@@ -21,6 +21,7 @@ const (
 	screenSearch
 	screenResults
 	screenFavorites
+	screenRecent
 	screenNowPlaying
 )
 
@@ -37,6 +38,8 @@ type Model struct {
 	client    *radio.Client
 	player    *player.Player
 	favorites *store.Favorites
+	history   *store.History
+	settings  *store.Settings
 	screen    screen
 	title     string
 	query     string
@@ -49,8 +52,8 @@ type Model struct {
 	booting   bool
 }
 
-func New(client *radio.Client, audio *player.Player, favorites *store.Favorites) Model {
-	return Model{client: client, player: audio, favorites: favorites, screen: screenMadagascar,
+func New(client *radio.Client, audio *player.Player, favorites *store.Favorites, history *store.History, settings *store.Settings) Model {
+	return Model{client: client, player: audio, favorites: favorites, history: history, settings: settings, screen: screenMadagascar,
 		title: "Radios malgaches 🇲🇬", loading: true, booting: true, message: "Chargement des radios malgaches…"}
 }
 
@@ -101,6 +104,9 @@ func (m Model) handleKey(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "v":
 		m.screen, m.stations, m.cursor = screenFavorites, m.favorites.List(), 0
 		m.title, m.message = "Favoris", fmt.Sprintf("%d station(s) favorite(s).", len(m.stations))
+	case "r":
+		m.screen, m.stations, m.cursor = screenRecent, m.history.List(), 0
+		m.title, m.message = "Récemment écoutées", fmt.Sprintf("%d station(s) récente(s).", len(m.stations))
 	case "n":
 		m.screen, m.title = screenNowPlaying, "En cours de lecture"
 	case "up", "k":
@@ -113,10 +119,16 @@ func (m Model) handleKey(key tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 	case "left":
 		volume, err := m.player.ChangeVolume(-5)
-		m.setControlMessage(err, fmt.Sprintf("Volume: %d%%", volume))
+		if err == nil {
+			err = m.settings.SetVolume(volume)
+		}
+		m.setControlMessage(err, fmt.Sprintf("Volume: %d%% · réglage sauvegardé", volume))
 	case "right":
 		volume, err := m.player.ChangeVolume(5)
-		m.setControlMessage(err, fmt.Sprintf("Volume: %d%%", volume))
+		if err == nil {
+			err = m.settings.SetVolume(volume)
+		}
+		m.setControlMessage(err, fmt.Sprintf("Volume: %d%% · réglage sauvegardé", volume))
 	case " ":
 		paused, err := m.player.TogglePause()
 		text := "Lecture reprise."
@@ -175,6 +187,9 @@ func (m *Model) playSelected() {
 		return
 	}
 	m.playing, m.message = &station, "Lecture de "+station.Name
+	if err := m.history.Add(station); err != nil {
+		m.message = "Lecture démarrée · historique non sauvegardé: " + err.Error()
+	}
 }
 
 func (m *Model) toggleFavorite() {
@@ -281,7 +296,7 @@ func (m Model) tabsView() string {
 		target screen
 	}{
 		{"H  Madagascar", screenMadagascar}, {"/  Recherche", screenSearch},
-		{"V  Favoris", screenFavorites}, {"N  En cours", screenNowPlaying},
+		{"V  Favoris", screenFavorites}, {"R  Récents", screenRecent}, {"N  En cours", screenNowPlaying},
 	}
 	parts := make([]string, 0, len(tabs))
 	for _, tab := range tabs {

@@ -13,13 +13,23 @@ import (
 )
 
 func main() {
-	audio := player.New()
+	settings, err := store.OpenSettings("")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "radioko-leka:", err)
+		os.Exit(1)
+	}
+	audio := player.NewWithVolume(settings.Data().Volume)
 	favorites, err := store.OpenFavorites("")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "radioko-leka:", err)
 		os.Exit(1)
 	}
-	program := tea.NewProgram(tui.New(radio.NewClient(), audio, favorites), tea.WithAltScreen())
+	history, err := store.OpenHistory("", settings.Data().RecentLimit)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "radioko-leka:", err)
+		os.Exit(1)
+	}
+	program := tea.NewProgram(tui.New(radio.NewClient(), audio, favorites, history, settings), tea.WithAltScreen())
 	if _, err := program.Run(); err != nil {
 		fmt.Fprintln(os.Stderr, "radioko-leka:", err)
 		os.Exit(1)
