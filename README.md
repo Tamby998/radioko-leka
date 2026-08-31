@@ -1,6 +1,15 @@
 # radioko-leka
 
-Une radio interactive dans le terminal, écrite en Go.
+Une radio interactive dans le terminal, écrite en Go et pensée d'abord pour
+les radios malgaches.
+
+## Fonctionnalités
+
+- accueil chargé automatiquement avec les radios de Madagascar ;
+- radios malgaches prioritaires dans les résultats de recherche ;
+- favoris persistants dans la configuration utilisateur ;
+- écran dédié à la station en cours de lecture ;
+- recherche internationale via Radio Browser.
 
 ## Prérequis
 
@@ -26,9 +35,13 @@ avec les flèches et appuyez de nouveau sur Entrée pour lancer la lecture.
 
 - `↑` / `↓` : sélectionner une station
 - `Entrée` : rechercher, écouter ou changer de station
+- `h` : afficher les radios malgaches
+- `/` ou `s` : rechercher une station
+- `v` : afficher les favoris
+- `n` : afficher l'écran en cours de lecture
+- `f` : ajouter ou retirer la station des favoris
 - `←` / `→` : diminuer ou augmenter le volume
 - `Espace` : pause ou reprise
 - `m` : couper ou rétablir le son
-- `/` : nouvelle recherche
-- `Échap` : arrêter la lecture
+- `x` : arrêter la lecture
 - `q` : quitter
