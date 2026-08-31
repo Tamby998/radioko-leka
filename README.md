@@ -16,7 +16,7 @@ les radios malgaches.
 
 ## Prérequis
 
-- Go 1.19 ou plus récent
+- Go 1.26.2 ou plus récent
 - `mpv`, `ffplay` ou `vlc` pour lire les flux audio
 
 Sur macOS :
@@ -29,6 +29,12 @@ brew install mpv
 
 ```sh
 go run ./cmd/radioko-leka
+```
+
+Pour installer la commande localement :
+
+```sh
+go install ./cmd/radioko-leka
 ```
 
 Tapez le nom d'une radio et appuyez sur Entrée. Sélectionnez ensuite une station
@@ -49,3 +55,76 @@ avec les flèches et appuyez de nouveau sur Entrée pour lancer la lecture.
 - `m` : couper ou rétablir le son
 - `x` : arrêter la lecture
 - `q` : quitter
+
+## AT Protocol
+
+`radioko-leka` utilise le SDK Go officiel d'atradio.fm et produit des
+enregistrements compatibles avec `fm.atradio.favorite`. La clé de chaque favori
+est déterministe et identique aux clients Rust et TypeScript d'atradio.fm.
+
+Créez un **app-password** dans les réglages de votre compte ATProto. Ne réutilisez
+pas votre mot de passe principal et ne placez jamais le secret dans le dépôt.
+
+```sh
+export RADIOKO_ATPROTO_IDENTIFIER="votre-handle.bsky.social"
+export RADIOKO_ATPROTO_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+go run ./cmd/radioko-leka sync
+```
+
+La synchronisation fusionne les favoris locaux avec ceux du PDS : les favoris
+distants sont importés localement, puis l'ensemble local est envoyé au PDS de
+manière idempotente. Le mot de passe et les jetons ne sont pas enregistrés dans
+les fichiers JSON.
+
+Pour un PDS personnalisé :
+
+```sh
+export RADIOKO_ATPROTO_SERVICE="https://pds.example.com"
+```
+
+Les profils, stations et favoris publics sont consultables sans connexion :
+
+```sh
+go run ./cmd/radioko-leka profile alice.bsky.social
+```
+
+## Stockage local
+
+Sur macOS, les données sont conservées dans
+`~/Library/Application Support/radioko-leka/`. Linux et Windows utilisent le
+dossier de configuration utilisateur standard du système.
+
+- `favorites.json` : favoris locaux ;
+- `recent.json` : historique récent ;
+- `settings.json` : volume et réglages du MVP.
+
+## Qualité et tests
+
+```sh
+gofmt -w cmd internal
+go test ./...
+go vet ./...
+```
+
+Le test d'intégration Radio Browser est volontairement optionnel afin que les
+tests unitaires restent utilisables hors ligne :
+
+```sh
+RADIOKO_INTEGRATION=1 go test ./internal/radio -run Integration
+```
+
+## Builds
+
+Construire les exécutables Linux, macOS Intel/Apple Silicon et Windows :
+
+```sh
+./scripts/build.sh
+```
+
+Les fichiers sont créés dans `dist/`. La CI GitHub vérifie aussi le formatage,
+les tests avec le détecteur de concurrence, `go vet` et les builds sur les trois
+systèmes.
+
+## Licence
+
+MIT — voir [LICENSE](./LICENSE).
