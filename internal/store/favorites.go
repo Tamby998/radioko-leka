@@ -61,6 +61,14 @@ func (f *Favorites) Toggle(station radio.Station) (bool, error) {
 	return true, f.save()
 }
 
+func (f *Favorites) Ensure(station radio.Station) (bool, error) {
+	if f.Contains(station) {
+		return false, nil
+	}
+	f.stations = append(f.stations, station)
+	return true, f.save()
+}
+
 func (f *Favorites) save() error {
 	return writeJSON(f.path, "favorites-*.json", f.stations)
 }
