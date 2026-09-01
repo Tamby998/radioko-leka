@@ -9,7 +9,7 @@ Consultez [NOTICE.md](NOTICE.md) pour les données et contenus tiers.
 Le catalogue combine Radio Browser avec une sélection de flux directs vérifiés,
 notamment Olivasoa Radio et DJ Bam.
 
-![Interface web de radioko-leka](docs/assets/radioko-leka-web.png)
+![Interface web de radioko-leka](docs/assets/radioko-leka-web.jpg)
 
 ## Fonctionnalités
 
