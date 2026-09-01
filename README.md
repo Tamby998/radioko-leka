@@ -3,6 +3,14 @@
 Une radio interactive dans le terminal, écrite en Go et pensée d'abord pour
 les radios malgaches.
 
+Le projet agit comme lecteur de flux et n'héberge pas les programmes audio.
+Consultez [NOTICE.md](NOTICE.md) pour les données et contenus tiers.
+
+Le catalogue combine Radio Browser avec une sélection de flux directs vérifiés,
+notamment Olivasoa Radio et DJ Bam.
+
+![Interface web de radioko-leka](docs/assets/radioko-leka-web.png)
+
 ## Fonctionnalités
 
 - accueil chargé automatiquement avec les radios de Madagascar ;
@@ -13,6 +21,15 @@ les radios malgaches.
 - écran dédié à la station en cours de lecture ;
 - interface colorée avec écran de lancement et navigation par onglets ;
 - recherche internationale via Radio Browser.
+
+### Interface web
+
+- lecteur audio responsive avec lecture, pause, mute, volume et navigation ;
+- catalogue mondial de plus de 58 000 stations issues de 240 pays et territoires ;
+- Madagascar placé en premier avec un catalogue local de secours ;
+- filtres par pays et par genre, recherche et pagination ;
+- favoris persistants, historique de session et animations de lecture ;
+- lien direct vers le dépôt pour proposer une amélioration.
 
 ## Prérequis
 
@@ -30,6 +47,18 @@ brew install mpv
 ```sh
 go run ./cmd/radioko-leka
 ```
+
+### Interface web Angular
+
+```sh
+cd frontend
+npm install
+npm start
+```
+
+Ouvrez ensuite `http://localhost:4200`. Le frontend propose déjà la lecture
+audio, la recherche mondiale, les filtres, le volume, le mute, les favoris
+locaux et l'historique de la session.
 
 Pour installer la commande localement :
 
@@ -124,6 +153,15 @@ Construire les exécutables Linux, macOS Intel/Apple Silicon et Windows :
 Les fichiers sont créés dans `dist/`. La CI GitHub vérifie aussi le formatage,
 les tests avec le détecteur de concurrence, `go vet` et les builds sur les trois
 systèmes.
+
+## Contribuer
+
+Les corrections, nouvelles radios et améliorations sont bienvenues. Consultez
+[les issues](https://github.com/Tamby998/radioko-leka/issues), créez une branche,
+puis ouvrez une pull request avec une modification ciblée et testée.
+
+Pour signaler un flux incorrect ou demander son retrait, utilisez également
+les issues du dépôt en indiquant le nom de la station et son URL.
 
 ## Licence
 
