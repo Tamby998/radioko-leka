@@ -54,15 +54,19 @@ func (c *Client) Search(ctx context.Context, query string, limit int) ([]Station
 	params.Set("reverse", "true")
 	params.Set("limit", strconv.Itoa(limit))
 
+	curated := searchCuratedMadagascar(query)
 	stations, err := c.get(ctx, "/json/stations/search?"+params.Encode())
 	if err != nil {
+		if len(curated) > 0 {
+			return mergeStations(curated, nil, limit), nil
+		}
 		return nil, err
 	}
 	// Les radios malgaches restent en tête lorsqu'elles correspondent à la recherche.
 	sort.SliceStable(stations, func(i, j int) bool {
 		return strings.EqualFold(stations[i].CountryCode, "MG") && !strings.EqualFold(stations[j].CountryCode, "MG")
 	})
-	return stations, nil
+	return mergeStations(curated, stations, limit), nil
 }
 
 func (c *Client) Madagascar(ctx context.Context, limit int) ([]Station, error) {
@@ -74,7 +78,11 @@ func (c *Client) Madagascar(ctx context.Context, limit int) ([]Station, error) {
 	params.Set("order", "votes")
 	params.Set("reverse", "true")
 	params.Set("limit", strconv.Itoa(limit))
-	return c.get(ctx, "/json/stations/bycountrycodeexact/MG?"+params.Encode())
+	stations, err := c.get(ctx, "/json/stations/bycountrycodeexact/MG?"+params.Encode())
+	if err != nil {
+		return mergeStations(curatedMadagascarStations(), nil, limit), nil
+	}
+	return mergeStations(curatedMadagascarStations(), stations, limit), nil
 }
 
 func (c *Client) get(ctx context.Context, path string) ([]Station, error) {
