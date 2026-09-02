@@ -62,14 +62,19 @@ locaux et l'historique de la session.
 
 ### Application mobile Ionic
 
-Le MVP mobile se trouve dans `mobile/`. Il utilise Ionic Angular et Capacitor,
-avec des projets natifs iOS et Android déjà initialisés.
+Le prototype mobile expérimental se trouve dans `mobile/`. Il utilise Ionic
+Angular et Capacitor, avec des projets natifs iOS et Android déjà initialisés.
 
 ```sh
 cd mobile
 npm install
 npm start
 ```
+
+Une fois le serveur lancé, l'application peut être testée dans un navigateur à
+l'adresse [http://localhost:8100/home](http://localhost:8100/home). Cette URL
+est locale : elle fonctionne uniquement sur l'ordinateur où `npm start` est en
+cours d'exécution.
 
 Pour synchroniser les fichiers web avec les projets natifs :
 
