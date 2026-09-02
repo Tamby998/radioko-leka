@@ -1,0 +1,205 @@
+<audio
+  #audio
+  [src]="current.stream"
+  preload="none"
+  (play)="playing = true"
+  (pause)="playing = false"
+></audio>
+<ion-content [fullscreen]="true" class="app-shell">
+  <div class="aurora one"></div>
+  <div class="aurora two"></div>
+  <main>
+    <header class="topbar">
+      <a class="brand" href="https://radiokoleka.xyz"
+        ><span>R</span><b>radioko-leka</b></a
+      ><button class="avatar">TK</button>
+    </header>
+    @if (activeTab === 'home') {
+    <section class="welcome">
+      <p>Salama</p>
+      <h1>Henoy ny feon'i<br /><em>Madagasikara.</em></h1>
+    </section>
+    <div class="section-title">
+      <div>
+        <small>EN DIRECT</small>
+        <h2>Radios malgaches</h2>
+      </div>
+      <button (click)="setTab('search')">Tout voir</button>
+    </div>
+    <div class="featured-scroll">
+      @for (station of featured; track trackStation($index, station)) {
+      <button
+        class="featured-card"
+        [attr.data-color]="station.color"
+        (click)="selectStation(station)"
+      >
+        <span class="live">LIVE</span
+        ><strong>{{station.name.charAt(0)}}</strong>
+        <div><b>{{station.name}}</b><small>{{station.detail}}</small></div>
+        <ion-icon name="play"></ion-icon>
+      </button>
+      }
+    </div>
+    <section class="discover">
+      <div class="section-title">
+        <div>
+          <small>POUR VOUS</small>
+          <h2>À découvrir</h2>
+        </div>
+      </div>
+      @for (station of featured.slice(2); track trackStation($index, station)) {
+      <ng-container
+        *ngTemplateOutlet="stationRow; context: {$implicit: station}"
+      ></ng-container>
+      }
+    </section>
+    } @if (activeTab === 'search') {
+    <section class="page-head">
+      <small>EXPLORER</small>
+      <h1>Trouvez votre son.</h1>
+      <p>Madagascar et le monde entier.</p>
+    </section>
+    <label class="searchbox"
+      ><ion-icon name="search"></ion-icon
+      ><input
+        type="search"
+        placeholder="Radio, ville ou musique"
+        [value]="query"
+        (input)="search($event)"
+    /></label>
+    <div class="chips">
+      <button (click)="runQuickSearch('Madagascar')">Madagascar</button
+      ><button (click)="runQuickSearch('France')">France</button
+      ><button (click)="runQuickSearch('Jazz')">Jazz</button>
+    </div>
+    <section class="results">
+      @if (loading) {
+      <div class="empty">
+        <ion-spinner name="crescent"></ion-spinner>
+        <p>Recherche des radios…</p>
+      </div>
+      } @for (station of searchResults; track trackStation($index, station)) {
+      <ng-container
+        *ngTemplateOutlet="stationRow; context: {$implicit: station}"
+      ></ng-container>
+      } @if (!loading && searchResults.length === 0) {
+      <div class="empty">
+        <ion-icon name="radio-outline"></ion-icon>
+        <h3>Commencez une recherche</h3>
+        <p>Tapez au moins deux lettres.</p>
+      </div>
+      }
+    </section>
+    } @if (activeTab === 'library') {
+    <section class="page-head">
+      <small>MA RADIO</small>
+      <h1>Vos écoutes.</h1>
+      <p>Favoris et stations récentes.</p>
+    </section>
+    <section class="library">
+      <h2>Favoris</h2>
+      @for (station of favoriteStations; track trackStation($index, station)) {
+      <ng-container
+        *ngTemplateOutlet="stationRow; context: {$implicit: station}"
+      ></ng-container>
+      } @if (favoriteStations.length === 0) {
+      <div class="empty compact">
+        <ion-icon name="heart-outline"></ion-icon>
+        <p>Ajoutez vos radios favorites.</p>
+      </div>
+      }
+    </section>
+    <section class="library">
+      <h2>Récentes</h2>
+      @for (station of recent; track trackStation($index, station)) {
+      <ng-container
+        *ngTemplateOutlet="stationRow; context: {$implicit: station}"
+      ></ng-container>
+      } @if (recent.length === 0) {
+      <div class="empty compact">
+        <ion-icon name="time-outline"></ion-icon>
+        <p>Votre historique apparaîtra ici.</p>
+      </div>
+      }
+    </section>
+    }
+  </main>
+  <ng-template #stationRow let-station
+    ><button class="station-row" (click)="selectStation(station)">
+      <span class="station-art" [attr.data-color]="station.color"
+        >{{station.name.charAt(0)}}</span
+      ><span
+        ><b>{{station.name}}</b
+        ><small>{{station.country}} · {{station.detail}}</small></span
+      ><ion-icon name="play-circle-outline"></ion-icon></button
+  ></ng-template>
+  <div class="player-stack">
+    <div
+      class="mini-player"
+      role="button"
+      tabindex="0"
+      (click)="playerOpen = true"
+      (keydown.enter)="playerOpen = true"
+    >
+      <span class="mini-art" [attr.data-color]="current.color"
+        >{{current.name.charAt(0)}}</span
+      ><span
+        ><b>{{current.name}}</b
+        ><small>{{playing ? 'En direct' : 'Prêt à écouter'}}</small></span
+      ><button (click)="toggleFavorite(current,$event)">
+        <ion-icon
+          [name]="isFavorite(current) ? 'heart' : 'heart-outline'"
+        ></ion-icon></button
+      ><button class="play" (click)="togglePlayback($event)">
+        <ion-icon [name]="playing ? 'pause' : 'play'"></ion-icon>
+      </button>
+    </div>
+    <nav>
+      <button [class.active]="activeTab==='home'" (click)="setTab('home')">
+        <ion-icon name="home"></ion-icon><span>Accueil</span></button
+      ><button [class.active]="activeTab==='search'" (click)="setTab('search')">
+        <ion-icon name="search"></ion-icon><span>Recherche</span></button
+      ><button
+        [class.active]="activeTab==='library'"
+        (click)="setTab('library')"
+      >
+        <ion-icon name="heart"></ion-icon><span>Ma radio</span>
+      </button>
+    </nav>
+  </div>
+  @if (playerOpen) {
+  <section class="full-player">
+    <header>
+      <button (click)="playerOpen=false">
+        <ion-icon name="chevron-down"></ion-icon></button
+      ><span>EN DIRECT</span
+      ><button (click)="toggleFavorite(current)">
+        <ion-icon
+          [name]="isFavorite(current)?'heart':'heart-outline'"
+        ></ion-icon>
+      </button>
+    </header>
+    <div class="cover" [attr.data-color]="current.color">
+      <i></i><strong>{{current.name.charAt(0)}}</strong><small>LIVE</small>
+    </div>
+    <div class="track">
+      <small>{{current.country}}</small>
+      <h2>{{current.name}}</h2>
+      <p>{{current.detail}}</p>
+    </div>
+    <div class="wave">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+    <div class="controls">
+      <button (click)="changeStation(-1)">
+        <ion-icon name="play-skip-back"></ion-icon></button
+      ><button class="main-play" (click)="togglePlayback()">
+        <ion-icon [name]="playing?'pause':'play'"></ion-icon></button
+      ><button (click)="changeStation(1)">
+        <ion-icon name="play-skip-forward"></ion-icon>
+      </button>
+    </div>
+    <p class="domain">radiokoleka.xyz</p>
+  </section>
+  }
+</ion-content>
