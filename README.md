@@ -60,6 +60,29 @@ Ouvrez ensuite `http://localhost:4200`. Le frontend propose déjà la lecture
 audio, la recherche mondiale, les filtres, le volume, le mute, les favoris
 locaux et l'historique de la session.
 
+### Application mobile Ionic
+
+Le MVP mobile se trouve dans `mobile/`. Il utilise Ionic Angular et Capacitor,
+avec des projets natifs iOS et Android déjà initialisés.
+
+```sh
+cd mobile
+npm install
+npm start
+```
+
+Pour synchroniser les fichiers web avec les projets natifs :
+
+```sh
+npm run build
+npx cap sync
+npx cap open ios      # macOS avec Xcode
+npx cap open android  # Android Studio
+```
+
+L'application comprend l'accueil des radios malgaches, la recherche mondiale,
+les favoris, l'historique, un mini-lecteur et un lecteur plein écran.
+
 Pour installer la commande localement :
 
 ```sh
