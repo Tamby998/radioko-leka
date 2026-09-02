@@ -15,7 +15,10 @@
       ><a href="#recent">Récentes</a>
     </div>
     <label class="search"
-      ><span>⌕</span
+      ><span class="inline-icon" aria-hidden="true"
+        ><svg viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="6"></circle>
+          <path d="m16 16 4 4"></path></svg></span
       ><input
         type="search"
         placeholder="Chercher une radio"
@@ -52,20 +55,48 @@
           (click)="toggleFavorite(current())"
           aria-label="Ajouter aux favoris"
         >
-          ♥
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"
+            ></path>
+          </svg>
         </button>
       </div>
       <div class="controls">
-        <button class="skip" aria-label="Station précédente" (click)="changeStation(-1)">‹</button
+        <button class="skip" aria-label="Station précédente" (click)="changeStation(-1)">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"></path>
+          </svg></button
         ><button
           class="play"
           (click)="togglePlayback()"
           [attr.aria-label]="playing() ? 'Pause' : 'Lecture'"
         >
-          {{ playing() ? 'Ⅱ' : '▶' }}</button
-        ><button class="skip" aria-label="Station suivante" (click)="changeStation(1)">›</button
+          @if (playing()) {
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 6v12M15 6v12"></path>
+            </svg>
+          } @else {
+            <svg class="icon icon-play" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="m8 5 11 7-11 7Z"></path>
+            </svg>
+          }</button
+        ><button class="skip" aria-label="Station suivante" (click)="changeStation(1)">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m9 18 6-6-6-6"></path>
+          </svg></button
         ><button class="volume-button" (click)="toggleMute()" aria-label="Couper le son">
-          {{ muted() ? '×' : '◖' }}</button
+          @if (muted()) {
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M11 5 6 9H3v6h3l5 4V5Z"></path>
+              <path d="m16 9 5 5m0-5-5 5"></path>
+            </svg>
+          } @else {
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M11 5 6 9H3v6h3l5 4V5Z"></path>
+              <path d="M15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12"></path>
+            </svg>
+          }</button
         ><input
           class="volume"
           type="range"
@@ -86,7 +117,7 @@
       <p>{{ filteredStations().length }} stations disponibles</p>
     </div>
     <div class="filters" aria-label="Filtres des stations">
-      <label
+      <label class="country-select-native"
         ><span>Pays</span
         ><select [value]="selectedCountry()" (change)="setCountry($event)">
           @for (country of countryOptions(); track country.code) {
@@ -94,6 +125,53 @@
           }
         </select></label
       >
+      <div class="country-picker">
+        <span class="filter-label">Pays</span>
+        <button
+          type="button"
+          class="country-trigger"
+          [attr.aria-expanded]="countryPickerOpen()"
+          aria-controls="country-options"
+          (click)="toggleCountryPicker()"
+        >
+          <span>{{ selectedCountryName() }}</span>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m7 10 5 5 5-5"></path>
+          </svg>
+        </button>
+        @if (countryPickerOpen()) {
+          <div class="country-popover" id="country-options">
+            <label class="country-search">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="6"></circle>
+                <path d="m16 16 4 4"></path>
+              </svg>
+              <input
+                type="search"
+                inputmode="search"
+                autocomplete="off"
+                placeholder="Rechercher un pays"
+                [value]="countrySearch()"
+                (input)="setCountrySearch($event)"
+              />
+            </label>
+            <div class="country-options">
+              @for (country of filteredCountries(); track country.code) {
+                <button
+                  type="button"
+                  [class.selected]="country.code === selectedCountry()"
+                  (click)="selectCountry(country.code)"
+                >
+                  <span>{{ country.name }}</span
+                  ><small>{{ country.count }}</small>
+                </button>
+              } @empty {
+                <p>Aucun pays trouvé.</p>
+              }
+            </div>
+          </div>
+        }
+      </div>
       <label
         ><span>Genre</span
         ><select [value]="selectedGenre()" (change)="setGenre($event)">
@@ -102,7 +180,13 @@
           }
         </select></label
       >
-      <div class="list-label"><span>☷</span> Affichage en liste</div>
+      <div class="list-label">
+        <span class="inline-icon" aria-hidden="true"
+          ><svg viewBox="0 0 24 24">
+            <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg
+        ></span>
+        Affichage en liste
+      </div>
     </div>
     <div class="station-grid">
       @if (loadingStations() && filteredStations().length === 0) {
@@ -132,9 +216,21 @@
             (click)="toggleFavorite(station, $event)"
             aria-label="Favori"
           >
-            ♥</button
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"
+              ></path>
+            </svg></button
           ><button class="card-play" [attr.aria-label]="'Écouter ' + station.name">
-            {{ station.id === current().id && playing() ? 'Ⅱ' : '▶' }}
+            @if (station.id === current().id && playing()) {
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M9 6v12M15 6v12"></path>
+              </svg>
+            } @else {
+              <svg class="icon icon-play" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m8 5 11 7-11 7Z"></path>
+              </svg>
+            }
           </button>
         </article>
       } @empty {
@@ -160,12 +256,15 @@
               }}</span
               ><b>{{ station.name }}</b
               ><small>{{ station.frequency }}</small
-              ><i>▶</i>
+              ><i
+                ><svg class="icon icon-play" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m8 5 11 7-11 7Z"></path></svg
+              ></i>
             </button>
           }
         }
         @if (favorites().size === 0) {
-          <p>Cliquez sur ♥ pour garder vos radios préférées ici.</p>
+          <p>Cliquez sur le cœur pour garder vos radios préférées ici.</p>
         }
       </div>
     </div>
@@ -174,7 +273,11 @@
       <h2>Écoutées récemment</h2>
       @if (recent().length === 0) {
         <div class="recent-empty">
-          <span>◌</span>
+          <span class="recent-icon"
+            ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="8"></circle>
+              <path d="M12 8v4l3 2"></path></svg
+          ></span>
           <p>Vos dernières écoutes apparaîtront ici.</p>
         </div>
       } @else {
@@ -186,7 +289,10 @@
               }}</span
               ><b>{{ station.name }}</b
               ><small>{{ station.frequency }}</small
-              ><i>▶</i>
+              ><i
+                ><svg class="icon icon-play" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="m8 5 11 7-11 7Z"></path></svg
+              ></i>
             </button>
           }
         </div>
@@ -195,7 +301,12 @@
   </section>
   <section class="support" id="support">
     <div class="support-copy">
-      <span class="support-icon">♥</span>
+      <span class="support-icon"
+        ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.5 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"
+          ></path></svg
+      ></span>
       <div>
         <p class="eyebrow"><span></span> Open source</p>
         <h2>Aidez radioko-leka à grandir.</h2>
@@ -213,7 +324,14 @@
         href="https://github.com/Tamby998/radioko-leka"
         target="_blank"
         rel="noopener noreferrer"
-        ><b>⌘</b> Contribuer sur GitHub</a
+        ><b
+          ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3.3-.4 6.8-1.6 6.8-7A5.4 5.4 0 0 0 19.3 4 5 5 0 0 0 19.2.5S18 .1 15 1.8a13.4 13.4 0 0 0-7 0C5 .1 3.8.5 3.8.5A5 5 0 0 0 3.7 4a5.4 5.4 0 0 0-1.5 3.7c0 5.3 3.5 6.5 6.8 7A4.8 4.8 0 0 0 8 18v4"
+            ></path>
+            <path d="M8 19c-3 .9-3-1.5-4-2"></path></svg
+        ></b>
+        Contribuer sur GitHub</a
       >
     </div>
   </section>

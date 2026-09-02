@@ -187,6 +187,8 @@ export class App {
   protected readonly volume = signal(72);
   protected readonly query = signal('');
   protected readonly selectedCountry = signal('MG');
+  protected readonly countryPickerOpen = signal(false);
+  protected readonly countrySearch = signal('');
   protected readonly selectedGenre = signal('Tous les genres');
   protected readonly countryOptions = signal<Country[]>([
     { name: 'Madagascar', code: 'MG', count: this.localStations.length },
@@ -207,6 +209,13 @@ export class App {
       this.countryOptions().find((country) => country.code === this.selectedCountry())?.name ??
       this.selectedCountry(),
   );
+  protected readonly filteredCountries = computed(() => {
+    const query = this.countrySearch().trim().toLocaleLowerCase();
+    if (!query) return this.countryOptions();
+    return this.countryOptions().filter((country) =>
+      `${country.name} ${country.code}`.toLocaleLowerCase().includes(query),
+    );
+  });
   protected readonly filteredStations = computed(() => {
     const query = this.query().trim().toLocaleLowerCase();
     return this.stations().filter((station) => {
@@ -274,10 +283,27 @@ export class App {
     this.query.set((event.target as HTMLInputElement).value);
   }
   protected setCountry(event: Event): void {
-    this.selectedCountry.set((event.target as HTMLSelectElement).value);
+    this.selectCountry((event.target as HTMLSelectElement).value);
+  }
+  protected selectCountry(code: string): void {
+    if (code === this.selectedCountry()) {
+      this.countryPickerOpen.set(false);
+      this.countrySearch.set('');
+      return;
+    }
+    this.selectedCountry.set(code);
     this.selectedGenre.set('Tous les genres');
     this.query.set('');
+    this.countryPickerOpen.set(false);
+    this.countrySearch.set('');
     void this.loadStations(true);
+  }
+  protected toggleCountryPicker(): void {
+    this.countryPickerOpen.update((open) => !open);
+    this.countrySearch.set('');
+  }
+  protected setCountrySearch(event: Event): void {
+    this.countrySearch.set((event.target as HTMLInputElement).value);
   }
   protected setGenre(event: Event): void {
     this.selectedGenre.set((event.target as HTMLSelectElement).value);
