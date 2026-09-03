@@ -60,6 +60,30 @@ Ouvrez ensuite `http://localhost:4200`. Le frontend propose déjà la lecture
 audio, la recherche mondiale, les filtres, le volume, le mute, les favoris
 locaux et l'historique de la session.
 
+### Application mobile Flutter
+
+La nouvelle application mobile est développée avec Flutter sur la branche
+`feature/mobile-flutter`. Elle ciblera Android et iOS tout en utilisant la même
+API Go que le site.
+
+Après initialisation du projet dans `mobile_flutter/` :
+
+```sh
+cd mobile_flutter
+flutter pub get
+flutter run
+```
+
+Pour vérifier le projet sans lancer d'émulateur :
+
+```sh
+flutter analyze
+flutter test
+```
+
+Le précédent prototype Ionic reste archivé séparément sur la branche
+`feature/mobile-ionic-experiment` et ne fait pas partie de `main`.
+
 Pour installer la commande localement :
 
 ```sh
