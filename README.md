@@ -62,16 +62,24 @@ locaux et l'historique de la session.
 
 ### Application mobile Flutter
 
-La nouvelle application mobile est développée avec Flutter sur la branche
-`feature/mobile-flutter`. Elle ciblera Android et iOS tout en utilisant la même
-API Go que le site.
+Le code source de l'application Flutter se trouve dans `mobile_flutter/` sur
+`main`. Elle cible Android et iOS tout en utilisant la même API Go que le site.
+L'interface web actuelle peut être testée sur
+[radiokoleka.xyz](https://www.radiokoleka.xyz/).
 
-Après initialisation du projet dans `mobile_flutter/` :
+Pour lancer l'application dans Chrome :
 
 ```sh
 cd mobile_flutter
 flutter pub get
-flutter run
+flutter run -d chrome
+```
+
+Pour la lancer dans un émulateur Android déjà démarré :
+
+```sh
+flutter devices
+flutter run -d emulator-5554
 ```
 
 Pour vérifier le projet sans lancer d'émulateur :

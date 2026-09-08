@@ -1,4 +1,5 @@
 /bin/
 /dist/
+/mobile/
 *.log
 .DS_Store
