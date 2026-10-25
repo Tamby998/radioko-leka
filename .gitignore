@@ -1,0 +1,36 @@
+# node / worker
+node_modules/
+.wrangler/
+dist/
+.dev.vars
+.env
+.env.*
+!.env.example
+
+# rust
+target/
+cli/target/
+**/*.rs.bk
+
+# flutter / dart
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/build/
+app/ios/Pods/
+app/macos/Pods/
+app/.packages
+pubspec.lock
+
+# os / editeurs
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Fichier de travail du banc de verification : regenere par
+# api/scripts/collecte-catalogue.py, n'a pas a etre suivi.
+web/outils/candidats.json
+
+# Fichier de travail laisse par un editeur, vide.
+*.tmp

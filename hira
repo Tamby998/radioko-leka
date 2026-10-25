@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+#
+# Lanceur Hira : demarre le Worker si besoin, puis la session interactive.
+#
+# Resout node lui-meme : installe via nvm, il n'est pas forcement dans le PATH
+# d'un shell de connexion, et wrangler est un script a shebang `env node`.
+
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PORT="${HIRA_PORT:-8787}"
+HEALTH="http://127.0.0.1:${PORT}/v1/health"
+LOG="${TMPDIR:-/tmp}/hira-worker.log"
+BIN="${ROOT}/cli/target/debug/hira"
+
+if [ ! -x "$BIN" ]; then
+  echo "hira : binaire absent. Compile-le d'abord :" >&2
+  echo "  cd ${ROOT}/cli && cargo build" >&2
+  exit 1
+fi
+
+find_node() {
+  local found
+  found="$(command -v node 2>/dev/null)" && [ -n "$found" ] && { echo "$found"; return 0; }
+  found="$(ls -d "$HOME"/.nvm/versions/node/*/bin/node 2>/dev/null | tail -1)"
+  [ -n "$found" ] && { echo "$found"; return 0; }
+  return 1
+}
+
+if ! curl -fsS --max-time 2 "$HEALTH" >/dev/null 2>&1; then
+  NODE="$(find_node)" || {
+    echo "hira : node introuvable. Installe-le, ou lance le Worker a la main." >&2
+    exit 1
+  }
+  echo "demarrage du Worker sur le port ${PORT}…"
+  # nohup + disown : sans ca le Worker meurt avec l'onglet du terminal, et on
+  # perd la session en refermant la fenetre.
+  nohup bash -c \
+    "cd '${ROOT}/api' && exec '${NODE}' node_modules/wrangler/bin/wrangler.js dev --port '${PORT}' --local" \
+    >"$LOG" 2>&1 &
+  disown 2>/dev/null || true
+
+  # Le premier demarrage compile le Worker : on laisse du temps.
+  for _ in $(seq 1 60); do
+    curl -fsS --max-time 2 "$HEALTH" >/dev/null 2>&1 && break
+    sleep 1
+  done
+
+  if ! curl -fsS --max-time 2 "$HEALTH" >/dev/null 2>&1; then
+    echo "hira : le Worker n'a pas repondu. Journal : ${LOG}" >&2
+    exit 1
+  fi
+  echo "Worker pret. Il reste en fond ; pour l'arreter : pkill -f wrangler"
+fi
+
+exec "$BIN" "$@"

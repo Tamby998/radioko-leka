@@ -1,0 +1,30 @@
+name: hira
+description: Toute la musique, et les paroles qui vont avec.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Catalogue mondial : lecteur IFrame officiel, rendu visible.
+  youtube_player_iframe: ^5.2.0
+
+  # Catalogue sous licence : audio natif, arriere-plan, hors-connexion.
+  just_audio: ^0.9.40
+  audio_service: ^0.18.15
+
+  http: ^1.2.2
+  path_provider: ^2.1.4
+  shared_preferences: ^2.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
