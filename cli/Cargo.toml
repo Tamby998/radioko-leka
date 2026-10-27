@@ -1,0 +1,23 @@
+[package]
+name = "hira"
+version = "0.1.0"
+edition = "2021"
+description = "Hira en terminal : recherche, lecture et paroles synchronisees."
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# rustls plutot que native-tls : pas de pkg-config requis sur la machine.
+reqwest = { version = "0.12", default-features = false, features = [
+  "blocking",
+  "json",
+  "rustls-tls",
+] }
+crossterm = "0.28"
+# Lecture des tags audio : mp3, m4a, flac, ogg, wav, sous une seule API.
+lofty = "0.21"
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true

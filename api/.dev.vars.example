@@ -1,0 +1,21 @@
+# Secrets du Worker en developpement local.
+#
+# Copie ce fichier en .dev.vars et renseigne les valeurs. `.dev.vars` est dans
+# le .gitignore : il ne part jamais dans git.
+#
+#   cp .dev.vars.example .dev.vars
+#
+# wrangler dev lit .dev.vars automatiquement au demarrage. Pour un Worker
+# deploye, c'est une autre commande :
+#
+#   npx wrangler secret put YOUTUBE_API_KEY
+#
+# La cle reste cote serveur. Le CLI et l'app ne la voient jamais : ils ne
+# parlent qu'au Worker.
+
+# Console Google Cloud > API YouTube Data v3 > Identifiants > Cle API.
+# Pense a restreindre la cle a la seule API YouTube Data v3.
+YOUTUBE_API_KEY=
+
+# Optionnel : catalogue Creative Commons. Inscription developpeur Jamendo.
+JAMENDO_CLIENT_ID=
