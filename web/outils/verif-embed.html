@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>Vérification d'intégration</title>
+<style>
+  body { font: 14px system-ui; background: #0b0b0d; color: #ececf1; margin: 0; padding: 16px; }
+  h1 { font-size: 16px; margin: 0 0 12px; }
+  #etat { color: #9a9aa6; margin-bottom: 12px; }
+  #bancs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .banc { width: 100%; aspect-ratio: 16/9; background: #000; }
+  .ok { color: #7ddc8a; } .ko { color: #e06c75; }
+</style>
+</head>
+<body>
+<h1>Vérification d'intégration</h1>
+<p id="etat">En attente d'identifiants…</p>
+<div id="bancs"></div>
+
+<script>
+/**
+ * Banc d'essai : charge chaque clip dans un vrai lecteur IFrame et note s'il
+ * joue ou s'il est refuse.
+ *
+ * `status.embeddable` de la Data API ne suffit pas : il vaut `true` pour des
+ * clips que le lecteur refuse ensuite. Seul un chargement reel dit la verite,
+ * et c'est ce que fait cette page.
+ *
+ * Plusieurs lecteurs tournent en parallele, en sourdine, pour que verifier
+ * quelques centaines de clips prenne des minutes et non des heures.
+ */
+const PARALLELE = 6;
+/** Un clip qui n'a ni joue ni echoue dans ce delai est compte comme refuse. */
+const DELAI_MS = 12000;
+
+window.__resultats = null;
+window.__avancement = { faits: 0, total: 0 };
+
+function chargerApi() {
+  return new Promise((ok) => {
+    if (window.YT?.Player) return ok(window.YT);
+    window.onYouTubeIframeAPIReady = () => ok(window.YT);
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(s);
+  });
+}
+
+function creerBanc(i) {
+  const d = document.createElement('div');
+  d.className = 'banc';
+  d.id = 'banc' + i;
+  document.getElementById('bancs').appendChild(d);
+  return new Promise((ok) => {
+    const p = new YT.Player('banc' + i, {
+      playerVars: { mute: 1, playsinline: 1, controls: 0 },
+      events: { onReady: () => ok(p) },
+    });
+  });
+}
+
+/**
+ * Teste un identifiant sur un lecteur deja pret.
+ *
+ * Le verdict ne repose que sur des EVENEMENTS, jamais sur une horloge. Un
+ * onglet en arriere-plan voit ses minuteurs brides : `getCurrentTime()`
+ * n'avance plus, et tout clip valide serait compte comme bloque. Les
+ * evenements du lecteur, eux, arrivent quand meme.
+ *
+ * PLAYING seul ne suffit pas : un clip refuse passe par PLAYING ou BUFFERING
+ * avant que `onError` n'arrive. On laisse donc un sursis a l'erreur avant de
+ * conclure que le clip joue.
+ */
+const SURSIS_MS = 2500;
+
+function tester(player, id) {
+  return new Promise((resoudre) => {
+    let fini = false;
+    let sursis = null;
+
+    const terminer = (verdict) => {
+      if (fini) return;
+      fini = true;
+      player.__onErreur = null;
+      player.__onEtat = null;
+      clearTimeout(sursis);
+      clearTimeout(minuterie);
+      try { player.stopVideo(); } catch (e) { /* lecteur deja libere */ }
+      resoudre(verdict);
+    };
+
+    // Une erreur est authoritative et annule un sursis en cours.
+    player.__onErreur = (code) => terminer('erreur:' + code);
+
+    player.__onEtat = (etat) => {
+      if (fini || sursis) return;
+      if (etat === YT.PlayerState.PLAYING || etat === YT.PlayerState.BUFFERING) {
+        sursis = setTimeout(() => terminer('ok'), SURSIS_MS);
+      }
+    };
+
+    const minuterie = setTimeout(() => terminer('bloque'), DELAI_MS);
+
+    try {
+      player.loadVideoById(id);
+      player.playVideo();
+    } catch (e) {
+      terminer('exception');
+    }
+  });
+}
+
+async function lancer(ids) {
+  await chargerApi();
+  // Repartir d'un conteneur vide : relancer sans ca recreerait des `div` dont
+  // l'identifiant est deja pris par les iframes du tour precedent, et
+  // `onReady` ne reviendrait jamais.
+  document.getElementById('bancs').innerHTML = '';
+  window.__resultats = null;
+  window.__avancement = { faits: 0, total: ids.length };
+  const etat = document.getElementById('etat');
+
+  // Reprise : les verdicts deja rendus sont relus, et les clips concernes ne
+  // sont pas retestes. Une verification de plusieurs minutes ne doit pas etre
+  // perdue parce que la page est tombee.
+  const acquis = lireAcquis();
+
+  const joueurs = [];
+  for (let i = 0; i < Math.min(PARALLELE, ids.length); i++) {
+    const p = await creerBanc(i);
+    // Les evenements sont rebranches a chaque test via les champs __on*.
+    p.addEventListener('onError', (e) => p.__onErreur?.(e.data));
+    p.addEventListener('onStateChange', (e) => p.__onEtat?.(e.data));
+    joueurs.push(p);
+  }
+
+  const resultats = { ...acquis };
+  const file = ids.filter((id) => !(id in acquis));
+  window.__avancement.faits = ids.length - file.length;
+
+  await Promise.all(
+    joueurs.map(async (p) => {
+      while (file.length) {
+        const id = file.shift();
+        resultats[id] = await tester(p, id);
+        window.__avancement.faits++;
+        ecrireAcquis(resultats);
+        etat.textContent =
+          `${window.__avancement.faits} / ${ids.length} vérifiés — ` +
+          `${Object.values(resultats).filter((v) => v === 'ok').length} jouent`;
+      }
+    }),
+  );
+
+  window.__resultats = resultats;
+  etat.innerHTML =
+    `<span class="ok">Terminé.</span> ${Object.values(resultats).filter((v) => v === 'ok').length}` +
+    ` / ${ids.length} jouent.`;
+  return resultats;
+}
+
+/** Les verdicts survivent a un rechargement : la verification est longue. */
+const ACQUIS = 'hira.verif.v1';
+
+function lireAcquis() {
+  try {
+    return JSON.parse(localStorage.getItem(ACQUIS) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function ecrireAcquis(r) {
+  try {
+    localStorage.setItem(ACQUIS, JSON.stringify(r));
+  } catch {
+    /* sans stockage, on perd la reprise mais pas la verification en cours */
+  }
+}
+
+window.verifier = lancer;
+window.oublierAcquis = () => localStorage.removeItem(ACQUIS);
+</script>
+</body>
+</html>

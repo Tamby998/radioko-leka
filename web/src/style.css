@@ -1,0 +1,237 @@
+/* Sobre et leger : la page doit tenir sur un petit forfait. */
+:root {
+  --fond: #0b0b0d;
+  --fond-2: #141418;
+  --trait: #26262e;
+  --texte: #ececf1;
+  --doux: #9a9aa6;
+  --vif: #e8c547;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.barre {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--trait);
+  position: sticky;
+  top: 0;
+  background: var(--fond);
+  z-index: 5;
+  flex-wrap: wrap;
+}
+
+.barre h1 {
+  margin: 0;
+  font-size: 20px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--vif);
+}
+
+#recherche { display: flex; gap: 8px; flex: 1; min-width: 240px; }
+
+#q {
+  flex: 1;
+  padding: 9px 13px;
+  border-radius: 8px;
+  border: 1px solid var(--trait);
+  background: var(--fond-2);
+  color: var(--texte);
+  font-size: 15px;
+}
+
+#q:focus { outline: 2px solid var(--vif); outline-offset: -1px; }
+
+button, .fichiers {
+  padding: 9px 15px;
+  border-radius: 8px;
+  border: 1px solid var(--trait);
+  background: var(--fond-2);
+  color: var(--texte);
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+button:hover, .fichiers:hover { border-color: var(--vif); color: var(--vif); }
+
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 24px;
+  padding: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+}
+
+.etat { color: var(--doux); margin: 0 0 12px; }
+
+#liste { list-style: none; margin: 0; padding: 0; }
+
+.piste {
+  display: grid;
+  grid-template-columns: 28px 20px minmax(0, 1fr) minmax(0, 0.7fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.piste:hover, .piste:focus { background: var(--fond-2); outline: none; }
+.piste.actif { background: var(--fond-2); box-shadow: inset 2px 0 0 var(--vif); }
+
+.rang, .duree, .artiste { color: var(--doux); font-size: 13px; }
+.marque { color: var(--vif); }
+.titre, .artiste { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.duree { font-variant-numeric: tabular-nums; }
+
+.lecture { position: sticky; top: 76px; }
+
+#scene { background: #000; border-radius: 10px; overflow: hidden; }
+
+/* Le lecteur officiel garde son ratio : il est visible, pas decore. */
+#yt, #yt iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; display: block; }
+
+#audio { width: 100%; display: block; }
+
+/* L'attribut `hidden` doit gagner sur la regle d'identifiant ci-dessus. */
+#audio[hidden], #yt[style*="display: none"] { display: none !important; }
+
+.encours { padding: 12px 2px; display: flex; flex-direction: column; gap: 2px; }
+.encours span { color: var(--doux); font-size: 13px; }
+
+.paroles {
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 4px 2px 40px;
+  color: var(--doux);
+  scrollbar-width: thin;
+}
+
+/* Trois etats, comme dans l'app : atteinte, passee, a venir.
+   Le remplissage vertical laisse la premiere et la derniere ligne se centrer. */
+/* 120 px, comme `EdgeInsets.symmetric(vertical: 120)` cote app : un
+   remplissage en pourcentage se calculerait sur la largeur, pas la hauteur. */
+.paroles { padding: 120px 2px; }
+
+.ligne {
+  margin: 0 0 10px;
+  font-size: 20px;
+  font-weight: 500;
+  color: rgba(236, 236, 241, 0.62);
+  cursor: pointer;
+  transition: color 0.24s ease-out, font-size 0.24s ease-out;
+}
+
+/* Deja chantee : en retrait, mais toujours lisible. */
+.ligne.passe { color: rgba(236, 236, 241, 0.38); }
+
+.ligne.actif {
+  color: var(--vif);
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.ligne:hover { color: var(--texte); }
+
+.message { color: var(--doux); margin: 0; cursor: default; }
+
+/* Un clip refuse par son ayant droit : visible, mais plus proposable. */
+.piste.refuse .titre { text-decoration: line-through; opacity: 0.45; }
+
+/* Les rayons editoriaux, au-dessus des resultats. */
+.rayons { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 12px; scrollbar-width: thin; }
+.rayons:empty { display: none; }
+
+.rayon {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.rayon .compte {
+  color: var(--doux);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* « À suivre » : replie, pour que la lecture reste la vue principale. */
+.suite { border-top: 1px solid var(--trait); padding-top: 10px; margin-bottom: 6px; }
+
+.suite summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--doux);
+  list-style: none;
+}
+
+.suite summary::-webkit-details-marker { display: none; }
+.suite summary::before { content: '▸ '; }
+.suite[open] summary::before { content: '▾ '; }
+.suite summary:hover { color: var(--texte); }
+
+#file { list-style: none; margin: 8px 0 0; padding: 0; max-height: 30vh; overflow-y: auto; }
+
+.aSuivre {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.6fr);
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.aSuivre:hover { background: var(--fond-2); }
+.vide { color: var(--doux); font-size: 13px; padding: 6px 8px; list-style: none; }
+
+/* Commandes de lecture, sous le titre en cours. */
+.commandes { display: flex; gap: 8px; align-items: center; padding: 2px 0 12px; }
+
+.commandes button {
+  width: 40px;
+  height: 36px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.commandes button:disabled { opacity: 0.3; cursor: default; }
+.commandes button:disabled:hover { border-color: var(--trait); color: var(--texte); }
+
+/* Le favori est le seul bouton qui porte un etat : il doit se voir. */
+#favori.aime { color: var(--vif); border-color: var(--vif); }
+#favori { margin-left: auto; }
+
+.rayon.favoris { border-color: rgba(232, 197, 71, 0.35); }
+
+/* Les rayons personnels d'abord : favoris, historique, mixes. */
+#rayonFavoris { order: -2; }
+#rayonHistorique { order: -1; }
+.rayon.mix { border-color: rgba(232, 197, 71, 0.22); }
+
+/* La sélection du moment ouvre le rayon. */
+#rayonPropose { order: -3; border-color: rgba(232, 197, 71, 0.5); color: var(--vif); }
+
+/* Les genres, apres les rayons personnels et avant les playlists. */
+.rayon.genre { border-color: rgba(38, 38, 46, 1); }

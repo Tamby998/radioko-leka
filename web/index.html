@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hira — toute la musique, et les paroles qui vont avec</title>
+<link rel="stylesheet" href="src/style.css" />
+</head>
+<body>
+<header class="barre">
+  <h1>Hira</h1>
+  <form id="recherche" autocomplete="off">
+    <input id="q" type="search" placeholder="Un artiste, un titre…" aria-label="Rechercher" />
+    <button type="submit">Chercher</button>
+  </form>
+  <label class="fichiers">
+    Mes fichiers
+    <input id="locaux" type="file" multiple accept="audio/*,.lrc" hidden />
+  </label>
+</header>
+
+<main>
+  <section class="resultats" aria-label="Résultats">
+    <nav class="rayons" id="rayons" aria-label="Playlists"></nav>
+    <p class="etat" id="etat">Cherche un titre, ou ouvre tes propres fichiers.</p>
+    <ol id="liste"></ol>
+  </section>
+
+  <section class="lecture" aria-label="Lecture">
+    <div id="scene">
+      <!-- Le lecteur officiel reste visible : c'est la condition de son usage. -->
+      <div id="yt"></div>
+      <audio id="audio" controls></audio>
+    </div>
+    <div id="encours" class="encours"></div>
+
+    <div class="commandes">
+      <button id="precedent" type="button" title="Précédent" aria-label="Précédent">⏮</button>
+      <button id="pause" type="button" title="Lecture / pause" aria-label="Lecture ou pause">⏸</button>
+      <button id="suivant" type="button" title="Suivant" aria-label="Suivant">⏭</button>
+      <button id="favori" type="button" title="Ajouter aux favoris" aria-label="Favori">☆</button>
+    </div>
+
+    <details class="suite" id="suite" open>
+      <summary>À suivre <span id="compteSuite"></span></summary>
+      <ol id="file"></ol>
+    </details>
+
+    <div id="paroles" class="paroles"></div>
+  </section>
+</main>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
