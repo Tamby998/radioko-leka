@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>sonde d'integration</title>
+<body style="margin:0;background:#000">
+<div id="p"></div>
+<script>
+// Tout passe par ce pont : la sonde ne montre rien, elle raconte.
+function dire(m) {
+  try { window.webkit.messageHandlers.hira.postMessage(String(m)); } catch (e) {}
+}
+
+const id = new URLSearchParams(location.search).get('id') || 'AMPdykrcho4';
+dire('origine=' + location.origin);
+
+// Si l'API elle-meme ne charge pas, le verdict doit le dire : « bloque » sans
+// cette distinction confondrait un refus d'integration avec un script absent.
+window.onYouTubeIframeAPIReady = function () {
+  dire('api=chargee');
+  new YT.Player('p', {
+    videoId: id,
+    width: 640,
+    height: 360,
+    playerVars: { playsinline: 1, autoplay: 1, rel: 0 },
+    events: {
+      onReady: (e) => { dire('pret'); e.target.playVideo(); },
+      // 1 = PLAYING, 3 = BUFFERING. Les deux ouvrent le sursis, cote Swift.
+      onStateChange: (e) => dire('etat=' + e.data),
+      onError: (e) => dire('erreur=' + e.data),
+    },
+  });
+};
+
+const s = document.createElement('script');
+s.src = 'https://www.youtube.com/iframe_api';
+s.onerror = () => dire('api=echec');
+document.head.appendChild(s);
+</script>

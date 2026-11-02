@@ -1,0 +1,71 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>lecteur</title>
+<style>
+  html, body { margin: 0; background: #000; overflow: hidden; }
+  #p { width: 100vw; height: 100vh; }
+</style>
+<body>
+<div id="p"></div>
+<script>
+// Cette page est la seule chose web de l'app, et elle ne dessine rien : elle
+// heberge le lecteur officiel, que les conditions d'usage imposent de montrer.
+// Toute l'interface est en SwiftUI, de l'autre cote du pont.
+function dire(message) {
+  try { window.webkit.messageHandlers.hira.postMessage(JSON.stringify(message)); } catch (e) {}
+}
+
+let lecteur = null;
+let attente = null;
+
+window.onYouTubeIframeAPIReady = function () {
+  lecteur = new YT.Player('p', {
+    width: '100%',
+    height: '100%',
+    playerVars: { playsinline: 1, rel: 0, modestbranding: 1 },
+    events: {
+      onReady: () => { dire({ quoi: 'pret' }); if (attente) { jouer(attente); attente = null; } },
+      onStateChange: (e) => dire({ quoi: 'etat', valeur: e.data }),
+      onError: (e) => dire({ quoi: 'erreur', valeur: e.data }),
+    },
+  });
+};
+
+// Appelees depuis Swift par evaluateJavaScript.
+function jouer(id) {
+  if (!lecteur) { attente = id; return; }
+  lecteur.loadVideoById(id);
+  lecteur.playVideo();
+}
+function basculer() {
+  if (!lecteur) return false;
+  const enLecture = lecteur.getPlayerState() === 1;
+  if (enLecture) lecteur.pauseVideo(); else lecteur.playVideo();
+  return !enLecture;
+}
+function position() { return lecteur ? Math.round(lecteur.getCurrentTime() * 1000) : 0; }
+function volume(n) { if (lecteur) { lecteur.unMute(); lecteur.setVolume(n); } }
+function vitesse(f) { if (lecteur) lecteur.setPlaybackRate(f); }
+function aller(ms) { if (lecteur) lecteur.seekTo(ms / 1000, true); }
+function stopper() { if (lecteur) lecteur.stopVideo(); }
+
+// Le script de l'API ne charge pas toujours du premier coup : vu echouer une
+// fois, et l'app restait alors muette pour de bon. Trois reessais espaces
+// avant de declarer forfait.
+let essais = 0;
+function chargerApi() {
+  const s = document.createElement('script');
+  s.src = 'https://www.youtube.com/iframe_api';
+  s.onerror = () => {
+    essais += 1;
+    if (essais < 4) {
+      dire({ quoi: 'api', valeur: 'reessai ' + essais });
+      setTimeout(chargerApi, 800 * essais);
+    } else {
+      dire({ quoi: 'api', valeur: 'echec' });
+    }
+  };
+  document.head.appendChild(s);
+}
+chargerApi();
+</script>
