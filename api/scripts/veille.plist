@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Veille mensuelle du catalogue.
+
+  A installer soi-meme, et seulement si on le veut :
+
+    cp api/scripts/veille.plist ~/Library/LaunchAgents/xyz.radiokoleka.veille.plist
+    launchctl load ~/Library/LaunchAgents/xyz.radiokoleka.veille.plist
+
+  Pour l'enlever :
+
+    launchctl unload ~/Library/LaunchAgents/xyz.radiokoleka.veille.plist
+
+  C'est un *agent* et non un demon : il tourne dans la session de l'utilisateur,
+  ce qui est indispensable — le banc ouvre une fenetre et a besoin d'une session
+  graphique. S'il n'y a personne de connecte le 1er a 10 h, launchd le lance au
+  prochain ouverture de session.
+
+  Il ne supprime rien. Il ecrit un rapport dans ~/Library/Logs/, et la purge
+  reste a lancer a la main apres lecture.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>xyz.radiokoleka.veille</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <!-- `zsh -l` et non `bash -l` : nvm vit dans ~/.zshrc, que bash ne lit
+         pas. Mesure faite sur cette machine : sous `zsh -l`, `npx` est
+         trouve ; sous `bash -l`, ni nvm ni npx. Pas besoin d'appeler
+         `nvm use` : le profil suffit. -->
+    <string>cd ~/Documents/hira/api &amp;&amp; bash scripts/veille-catalogue.sh</string>
+  </array>
+
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Day</key><integer>1</integer>
+    <key>Hour</key><integer>10</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
+
+  <key>StandardOutPath</key>
+  <string>/Users/test/Library/Logs/radiokoleka-veille.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/test/Library/Logs/radiokoleka-veille.log</string>
+
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>

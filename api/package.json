@@ -1,0 +1,30 @@
+{
+  "name": "hira-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types test/*.test.ts",
+    "db:init": "wrangler d1 execute hira --local --file=./schema.sql",
+    "db:seed": "wrangler d1 execute hira --local --file=./seed.sql",
+    "db:seed:gasy": "wrangler d1 execute hira --local --file=./seed-gasy.sql",
+    "db:seed:catalogue": "wrangler d1 execute hira --local --file=./seed-catalogue.sql",
+    "db:seed:styles": "wrangler d1 execute hira --local --file=./seed-styles.sql",
+    "db:taglines": "wrangler d1 execute hira --local --file=./taglines.sql",
+    "db:purge": "wrangler d1 execute hira --local --file=./purge-injouables.sql",
+    "db:purge:inter": "wrangler d1 execute hira --local --file=./purge-internationaux.sql",
+    "veille": "bash scripts/veille-catalogue.sh",
+    "db:cache:clear": "wrangler d1 execute hira --local --file=./cache-clear.sql",
+    "db:init:remote": "wrangler d1 execute hira --remote --file=./schema.sql",
+    "db:refresh": "node scripts/refresh-durations.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241011.0",
+    "@types/node": "^22.20.5",
+    "typescript": "^5.6.3",
+    "wrangler": "^3.80.0"
+  }
+}
