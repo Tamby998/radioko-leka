@@ -14,7 +14,7 @@ import '../services/api_client.dart';
 class DownloadManager {
   DownloadManager(this._api);
 
-  final HiraApi _api;
+  final RadiokoLekaApi _api;
 
   Future<Directory> _dir() async {
     final base = await getApplicationSupportDirectory();
@@ -46,7 +46,7 @@ class DownloadManager {
     final req = http.Request('GET', Uri.parse(url));
     final res = await http.Client().send(req);
     if (res.statusCode >= 400) {
-      throw HiraApiException(res.statusCode, 'telechargement refuse', Uri.parse(url));
+      throw ApiException(res.statusCode, 'telechargement refuse', Uri.parse(url));
     }
 
     final file = File('${(await _dir()).path}/${_fileName(track)}');

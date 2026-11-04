@@ -1,430 +1,230 @@
 import 'package:flutter/material.dart';
 
+import 'player/playback_controller.dart';
+import 'services/api_client.dart';
+import 'ui/rayons.dart';
+import 'ui/lecteur.dart';
+import 'ui/radios.dart';
+import 'ui/recherche.dart';
+
+/// Le Worker deploye, et non `127.0.0.1` : un telephone ne joint pas la boucle
+/// locale d'un portable. Surchargeable au build pour pointer un Worker de test.
+///
+///   flutter run --dart-define=RADIOKOLEKA_API_URL=http://192.168.1.12:8787
+const apiBaseUrl = String.fromEnvironment(
+  'RADIOKOLEKA_API_URL',
+  defaultValue: 'https://radiokoleka-api.radiokoleka.workers.dev',
+);
+
+/// Les deux couleurs du projet, celles que porte le nom : « radio » pour la
+/// premiere, « leka » pour la seconde. Memes valeurs que l'app macOS.
+const couleurRadio = Color(0xFFF2C94C);
+const couleurLeka = Color(0xFF7BD88F);
+
 void main() => runApp(const RadiokoLekaApp());
 
-class RadiokoLekaApp extends StatelessWidget {
+class RadiokoLekaApp extends StatefulWidget {
   const RadiokoLekaApp({super.key});
 
   @override
+  State<RadiokoLekaApp> createState() => _RadiokoLekaAppState();
+}
+
+class _RadiokoLekaAppState extends State<RadiokoLekaApp> {
+  final RadiokoLekaApi _api = RadiokoLekaApi(baseUrl: apiBaseUrl);
+  final PlaybackController _lecture = PlaybackController();
+
+  @override
+  void dispose() {
+    _lecture.dispose();
+    _api.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    const background = Color(0xFF0B0B0E);
+    final sombre = ColorScheme.fromSeed(
+      seedColor: couleurRadio,
+      brightness: Brightness.dark,
+    ).copyWith(secondary: couleurLeka);
+
     return MaterialApp(
+      title: 'RadiokoLeka',
       debugShowCheckedModeBanner: false,
-      title: 'Radioko Leka',
       theme: ThemeData(
         useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: background,
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFFC7FF32),
-          surface: Color(0xFF18181C),
-        ),
-        fontFamily: 'Arial',
+        colorScheme: ColorScheme.fromSeed(seedColor: couleurRadio)
+            .copyWith(secondary: couleurLeka),
       ),
-      home: const RadioHomePage(),
+      darkTheme: ThemeData(useMaterial3: true, colorScheme: sombre),
+      themeMode: ThemeMode.dark,
+      home: Accueil(api: _api, lecture: _lecture),
     );
   }
 }
 
-class Station {
-  const Station(this.name, this.subtitle, this.color, this.icon);
+/// La coque : trois onglets et, sous eux, la barre du titre en cours.
+class Accueil extends StatefulWidget {
+  const Accueil({super.key, required this.api, required this.lecture});
 
-  final String name;
-  final String subtitle;
-  final Color color;
-  final IconData icon;
-}
-
-class RadioHomePage extends StatefulWidget {
-  const RadioHomePage({super.key});
+  final RadiokoLekaApi api;
+  final PlaybackController lecture;
 
   @override
-  State<RadioHomePage> createState() => _RadioHomePageState();
+  State<Accueil> createState() => _AccueilState();
 }
 
-class _RadioHomePageState extends State<RadioHomePage> {
-  final _stations = const [
-    Station('Viva Radio', 'Antananarivo · Pop', Color(0xFF6B39F4), Icons.bolt),
-    Station(
-      'Radio Don Bosco',
-      'Madagascar · Actualités',
-      Color(0xFFF0544F),
-      Icons.public,
-    ),
-    Station(
-      'RDJ 96.6',
-      'Antananarivo · Hits',
-      Color(0xFF147D91),
-      Icons.graphic_eq,
-    ),
-    Station(
-      'Radio Vazo Gasy',
-      'Madagascar · Malagasy',
-      Color(0xFFE59E32),
-      Icons.music_note,
-    ),
-    Station(
-      'Record Radio',
-      'Madagascar · Dance',
-      Color(0xFFBB42C8),
-      Icons.album,
-    ),
-    Station(
-      'Top Radio 102.8',
-      'Antananarivo · Variétés',
-      Color(0xFF218C65),
-      Icons.headphones,
-    ),
-  ];
-
-  String _query = '';
-  int _tab = 0;
-  Station? _playing;
-  bool _isPlaying = false;
-  final Set<String> _favorites = {'Viva Radio', 'RDJ 96.6'};
+class _AccueilState extends State<Accueil> {
+  int _onglet = 0;
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _stations
-        .where(
-          (station) =>
-              station.name.toLowerCase().contains(_query.toLowerCase()),
-        )
-        .toList();
-
     return Scaffold(
+      // IndexedStack et non un simple switch : changer d'onglet ne doit pas
+      // relancer les appels reseau de celui qu'on quitte.
       body: SafeArea(
-        child: Column(
+        child: IndexedStack(
+          index: _onglet,
           children: [
-            Expanded(
-              child: CustomScrollView(
-                slivers: [
-                  SliverToBoxAdapter(child: _header()),
-                  SliverToBoxAdapter(child: _search()),
-                  SliverToBoxAdapter(child: _categories()),
-                  SliverToBoxAdapter(child: _sectionTitle()),
-                  SliverPadding(
-                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
-                    sliver: SliverGrid(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => _stationCard(filtered[index]),
-                        childCount: filtered.length,
-                      ),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: .92,
-                          ),
+            VueRadios(api: widget.api, lecture: widget.lecture),
+            VueRayons(api: widget.api, lecture: widget.lecture),
+            VueRecherche(api: widget.api, lecture: widget.lecture),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          BarreDuTitre(api: widget.api, lecture: widget.lecture),
+          NavigationBar(
+            selectedIndex: _onglet,
+            onDestinationSelected: (i) => setState(() => _onglet = i),
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.radio_outlined),
+                selectedIcon: Icon(Icons.radio),
+                label: 'Radios',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.library_music_outlined),
+                selectedIcon: Icon(Icons.library_music),
+                label: 'Rayons',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.search),
+                label: 'Recherche',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// La barre toujours visible quand quelque chose joue.
+///
+/// Elle ne porte pas le lecteur : elle y mene. Un clip YouTube exige que son
+/// lecteur reste a l'ecran, ce qu'une barre de 64 pixels ne peut pas offrir.
+class BarreDuTitre extends StatelessWidget {
+  const BarreDuTitre({super.key, required this.api, required this.lecture});
+
+  final RadiokoLekaApi api;
+  final PlaybackController lecture;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: lecture,
+      builder: (context, _) {
+        final titre = lecture.current;
+        if (titre == null) return const SizedBox.shrink();
+
+        final couleurs = Theme.of(context).colorScheme;
+        return Material(
+          color: couleurs.surfaceContainerHigh,
+          child: InkWell(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => VueLecteur(
+                  api: api,
+                  lecture: lecture,
+                  titre: titre,
+                ),
+              ),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                children: [
+                  Pochette(url: titre.artworkUrl, taille: 44),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          titre.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                        Text(
+                          titre.estRadio ? 'En direct' : titre.artistNames,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: couleurs.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: lecture.togglePlayPause,
+                    icon: Icon(
+                      lecture.enLecture ? Icons.pause : Icons.play_arrow,
                     ),
                   ),
                 ],
               ),
             ),
-            if (_playing != null) _miniPlayer(),
-          ],
-        ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        height: 68,
-        selectedIndex: _tab,
-        onDestinationSelected: (value) => setState(() => _tab = value),
-        backgroundColor: const Color(0xFF111114),
-        indicatorColor: const Color(0xFFC7FF32).withValues(alpha: .16),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Accueil',
           ),
-          NavigationDestination(icon: Icon(Icons.search), label: 'Explorer'),
-          NavigationDestination(
-            icon: Icon(Icons.favorite_border),
-            selectedIcon: Icon(Icons.favorite),
-            label: 'Favoris',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            label: 'Profil',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _header() => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-    child: Row(
-      children: [
-        Container(
-          width: 42,
-          height: 42,
-          decoration: const BoxDecoration(
-            color: Color(0xFFC7FF32),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.radio_rounded, color: Colors.black),
-        ),
-        const SizedBox(width: 12),
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'RADIOKO LEKA',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.1,
-                ),
-              ),
-              Text(
-                'Ny onjam-peonao, na aiza na aiza',
-                style: TextStyle(fontSize: 12, color: Color(0xFF929298)),
-              ),
-            ],
-          ),
-        ),
-        IconButton.filledTonal(
-          onPressed: () {},
-          icon: const Icon(Icons.notifications_none_rounded),
-        ),
-      ],
-    ),
-  );
-
-  Widget _search() => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 18),
-    child: TextField(
-      onChanged: (value) => setState(() => _query = value),
-      decoration: InputDecoration(
-        hintText: 'Rechercher une radio...',
-        hintStyle: const TextStyle(color: Color(0xFF77777D)),
-        prefixIcon: const Icon(Icons.search_rounded),
-        suffixIcon: const Icon(Icons.tune_rounded),
-        filled: true,
-        fillColor: const Color(0xFF1A1A1E),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    ),
-  );
-
-  Widget _categories() => SizedBox(
-        height: 116,
-    child: ListView(
-      scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 10),
-      children: const [
-        _Category('Malagasy', Icons.flag_rounded, Color(0xFF6246EA)),
-        _Category('Actualités', Icons.newspaper_rounded, Color(0xFFD94B4B)),
-        _Category('Musique', Icons.music_note_rounded, Color(0xFF14867B)),
-        _Category('Gospel', Icons.wb_sunny_rounded, Color(0xFFD08A28)),
-      ],
-    ),
-  );
-
-  Widget _sectionTitle() => const Padding(
-    padding: EdgeInsets.fromLTRB(20, 12, 20, 14),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            'Radios populaires',
-            style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800),
-          ),
-        ),
-        Text(
-          'Voir tout',
-          style: TextStyle(
-            color: Color(0xFFC7FF32),
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
-    ),
-  );
-
-  Widget _stationCard(Station station) {
-    final favorite = _favorites.contains(station.name);
-    final active = _playing?.name == station.name;
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () => setState(() {
-        _playing = station;
-        _isPlaying = true;
-      }),
-      child: Ink(
-        decoration: BoxDecoration(
-          color: const Color(0xFF19191D),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: active ? const Color(0xFFC7FF32) : Colors.white10,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        station.color,
-                        station.color.withValues(alpha: .45),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: Stack(
-                    children: [
-                      Center(
-                        child: Icon(
-                          station.icon,
-                          size: 54,
-                          color: Colors.white.withValues(alpha: .9),
-                        ),
-                      ),
-                      Positioned(
-                        right: 6,
-                        top: 6,
-                        child: IconButton.filled(
-                          visualDensity: VisualDensity.compact,
-                          onPressed: () => setState(
-                            () => favorite
-                                ? _favorites.remove(station.name)
-                                : _favorites.add(station.name),
-                          ),
-                          icon: Icon(
-                            favorite ? Icons.favorite : Icons.favorite_border,
-                            size: 18,
-                            color: favorite
-                                ? const Color(0xFFC7FF32)
-                                : Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                station.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                station.subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFF96969C), fontSize: 11),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _miniPlayer() {
-    final station = _playing!;
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF232328),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: station.color,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(station.icon),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  station.name,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                const Text(
-                  'EN DIRECT  •  Madagascar',
-                  style: TextStyle(fontSize: 11, color: Color(0xFFC7FF32)),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.skip_previous_rounded),
-          ),
-          IconButton.filled(
-            style: IconButton.styleFrom(
-              backgroundColor: const Color(0xFFC7FF32),
-              foregroundColor: Colors.black,
-            ),
-            onPressed: () => setState(() => _isPlaying = !_isPlaying),
-            icon: Icon(
-              _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
-class _Category extends StatelessWidget {
-  const _Category(this.label, this.icon, this.color);
+/// Pochette carree, avec le repli qui va avec : beaucoup de radios n'en ont
+/// pas, et une URL morte ne doit pas casser une liste.
+class Pochette extends StatelessWidget {
+  const Pochette({super.key, required this.url, this.taille = 56});
 
-  final String label;
-  final IconData icon;
-  final Color color;
+  final String? url;
+  final double taille;
 
   @override
-  Widget build(BuildContext context) => Container(
-    width: 104,
-    margin: const EdgeInsets.only(right: 10),
-    decoration: BoxDecoration(
-      gradient: LinearGradient(colors: [color, color.withValues(alpha: .55)]),
-      borderRadius: BorderRadius.circular(18),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Icon(icon, size: 25),
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
-          ),
-        ],
-      ),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final repli = Container(
+      width: taille,
+      height: taille,
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Icon(Icons.music_note, size: taille * 0.5),
+    );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: url == null
+          ? repli
+          : Image.network(
+              url!,
+              width: taille,
+              height: taille,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => repli,
+            ),
+    );
+  }
 }

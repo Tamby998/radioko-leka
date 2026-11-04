@@ -94,6 +94,10 @@ class Track {
 
   bool can(Capability c) => capabilities.contains(c);
 
+  /// Une radio n'a ni duree ni fin : pas de barre de progression, pas
+  /// d'enchainement, et le nom de la station tient lieu d'artiste.
+  bool get estRadio => source == 'radio';
+
   /// A appeler avant toute ecriture de fichier ou lecture sans UI visible.
   void requireCapability(Capability c) {
     if (!can(c)) throw CapabilityError(this, c);

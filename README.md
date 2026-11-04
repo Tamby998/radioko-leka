@@ -18,8 +18,11 @@ malgache — mais pas une ligne de code.
 
 | | Ce que c'est | Où |
 |---|---|---|
-| **radioko-leka** | la radio : flux en direct, CLI Go, web Angular, mobile Flutter | `cmd/`, `internal/`, `frontend/`, `mobile_flutter/` |
-| **le lecteur musical** | le catalogue : titres, paroles synchronisées, app macOS native | `api/`, `desktop/`, `cli/`, `app/`, `web/` |
+| **radioko-leka** | la radio : flux en direct, CLI Go, web Angular | `cmd/`, `internal/`, `frontend/` |
+| **le lecteur musical** | le catalogue : titres, paroles synchronisées, app macOS native | `api/`, `desktop/`, `cli/`, `web/` |
+
+L'app mobile `mobile_flutter/` est commune aux deux : elle porte les radios
+du premier et le catalogue du second.
 
 Le second a repris les radios du premier : ses stations passent par Radio
 Browser et par la même sélection malgache vérifiée. Sa documentation complète —

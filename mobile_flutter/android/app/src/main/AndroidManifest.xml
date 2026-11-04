@@ -1,8 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Seuls les variants debug et profile la portaient : une version release
+         n'aurait eu aucun acces reseau, et tout l'ecran serait reste vide sans
+         qu'aucune erreur ne le dise. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:label="Radiokoleka"
+        android:label="RadiokoLeka"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -12,6 +18,12 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
+            <!-- `usesCleartextTraffic` plus haut : beaucoup de radios diffusent
+                 encore en http. 4 stations malgaches sur 18, 25 francaises sur
+                 51, 28 americaines sur 60. Android les bloque en silence sinon
+                 — la station se « lance » et rien ne sort. C'est la meme cause
+                 que `NSAllowsArbitraryLoadsForMedia` cote macOS. On ne choisit
+                 pas ces adresses, les stations les publient. -->
             <!-- Specifies an Android theme to apply to this Activity as soon as
                  the Android process has started. This theme is visible to the user
                  while the Flutter UI initializes. After that, this theme continues

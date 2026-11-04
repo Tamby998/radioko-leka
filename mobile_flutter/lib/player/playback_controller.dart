@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:just_audio/just_audio.dart';
+// `hide PlayerState` : les deux paquets definissent ce nom, et sans ce
+// masque le fichier ne compile pas. Seul celui du lecteur YouTube nous sert ;
+// de just_audio on ne prend que `AudioPlayer`.
+import 'package:just_audio/just_audio.dart' hide PlayerState;
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 
 import '../models/track.dart';
@@ -41,6 +44,14 @@ class PlaybackController extends ChangeNotifier {
   /// Non nul uniquement en mode [PlaybackEngine.youtubeOfficial] : l'UI doit
   /// alors afficher le lecteur, ce n'est pas optionnel.
   YoutubePlayerController? get youtubeController => _youtube;
+
+  /// Vrai quand du son sort, quel que soit le moteur.
+  bool get enLecture => switch (_engine) {
+        PlaybackEngine.licensedAudio => _audio.playing,
+        PlaybackEngine.youtubeOfficial =>
+          _youtube?.value.playerState == PlayerState.playing,
+        PlaybackEngine.none => false,
+      };
 
   bool get isPlayingInBackgroundCapableEngine =>
       _engine == PlaybackEngine.licensedAudio;

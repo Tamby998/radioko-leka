@@ -21,7 +21,7 @@ pour cet usage.
 
 Ce choix est verrouille a deux endroits : `assertCapability` cote Worker
 (`api/src/sources/types.ts`) et `Track.requireCapability` cote app
-(`app/lib/models/track.dart`). Un titre du catalogue mondial ne peut pas finir
+(`mobile_flutter/lib/models/track.dart`). Un titre du catalogue mondial ne peut pas finir
 en fichier local par oubli — et l'interface ne montre meme pas le bouton.
 
 ## Structure
@@ -29,12 +29,12 @@ en fichier local par oubli — et l'interface ne montre meme pas le bouton.
 ```
 api/   Worker Cloudflare + D1 — catalogue cure, classements, cache paroles
 cli/   Rust — client terminal : recherche, lecture, karaoke
-app/   Flutter — Android, macOS, Windows, Linux
+mobile_flutter/  Flutter — Android d abord, iOS ensuite
 docs/  ARCHITECTURE.md
 ```
 
 Le modele de capacites est implemente trois fois, une par couche :
-`api/src/sources/types.ts`, `cli/src/capability.rs`, `app/lib/models/track.dart`.
+`api/src/sources/types.ts`, `cli/src/capability.rs`, `mobile_flutter/lib/models/track.dart`.
 
 ## En ligne
 
@@ -458,25 +458,35 @@ Aucun crate audio : l'API de `rodio` bouge trop, un sous-processus suffit. La
 pause passe par SIGSTOP/SIGCONT, et la position par une horloge locale — donc
 pas de recherche dans la piste, `afplay` n'ayant pas d'option de depart.
 
-## Demarrer l'app
+## Demarrer l'app mobile
 
-Le SDK Flutter (>= 3.5) est requis.
+Elle vit dans `mobile_flutter/`, commune avec la radio, et vise Android
+d'abord. Flutter stable et le SDK Android suffisent — pas d'Android Studio.
 
 ```bash
-cd app
+cd mobile_flutter
 flutter pub get
-flutter run --dart-define=HIRA_API_URL=http://127.0.0.1:8787
+flutter run -d <appareil>
 ```
 
-Builds : `flutter build apk`, `flutter build macos`, `flutter build windows`,
-`flutter build linux`.
+Elle tape le Worker deploye par defaut. Pour un Worker local, il faut une
+adresse que le telephone peut joindre : `127.0.0.1` designe le telephone.
+
+```bash
+flutter run --dart-define=RADIOKOLEKA_API_URL=http://192.168.1.12:8787
+```
+
+Le dossier `app/` qui existait avant portait la meme logique sans aucun
+dossier de plateforme : il n'avait jamais ete compile, et une erreur de nom
+ambigu entre `just_audio` et `youtube_player_iframe` l'attendait a la
+premiere tentative. Son code vit maintenant dans `mobile_flutter/lib/`.
 
 ## Tests
 
 ```bash
 cd api && npm test        # parsing LRC, durees ISO, garde-fous de capacites
 cd cli && cargo test      # fenetre karaoke, barre, dichotomie, parsing args
-cd app && flutter test
+cd mobile_flutter && flutter test
 ```
 
 Le contrat JSON entre le CLI et le Worker est verifiable sans compilateur :
