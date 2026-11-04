@@ -1,0 +1,31 @@
+* {
+  box-sizing: border-box;
+}
+html {
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: #fff;
+  background: #061525;
+  font-family: Inter, Avenir, 'Segoe UI', sans-serif;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 72% 0%, rgba(43, 180, 147, 0.12), transparent 30%),
+    radial-gradient(circle at 10% 45%, rgba(28, 67, 113, 0.18), transparent 32%);
+}
+button,
+input {
+  font: inherit;
+}
+::selection {
+  color: #061525;
+  background: #55e2ac;
+}

@@ -1,3 +1,11 @@
+# --- radioko-leka : CLI Go, web Angular, mobile Flutter ---
+/bin/
+/dist/
+/mobile/
+*.log
+.DS_Store
+
+# --- lecteur musical : Worker, app macOS, CLI Rust, web ---
 # node / worker
 node_modules/
 .wrangler/
