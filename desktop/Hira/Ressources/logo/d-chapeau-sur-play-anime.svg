@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"
+     role="img" aria-label="RadiokoLeka">
+  <title>RadiokoLeka — le satroka qui se pose (anime)</title>
+
+  <!-- Couleurs du projet, declarees une seule fois.
+       Elles viennent de desktop/Hira/Sources/Reglages.swift :
+         accent #F2C94C « Or »     — ce qui est actif, en cours, choisi
+         second #7BD88F « Menthe » — la progression, les accents discrets -->
+  <style>
+    .or     { fill: #F2C94C }
+    .menthe { fill: #7BD88F }
+
+    /* Le chapeau tombe et se pose. Le groupe exterieur porte l animation,
+       le groupe interieur garde l inclinaison de 10 degres : une animation
+       CSS sur « transform » ecrase l attribut transform, il faut donc deux
+       groupes imbriques, pas un seul. */
+    .pose { animation: pose 1.3s cubic-bezier(.22,1.15,.36,1) .25s both;
+            transform-origin: 123px 100px }
+    @keyframes pose {
+      from { transform: translateY(-160px) rotate(-16deg); opacity: 0 }
+      45%  { opacity: 1 }
+      to   { transform: translateY(0) rotate(0deg);        opacity: 1 }
+    }
+    /* Respecte le reglage systeme « reduire les animations ». */
+    @media (prefers-reduced-motion: reduce) { .pose { animation: none } }
+  </style>
+
+  <!-- Le triangle de lecture, forme principale. Pentes a 30 degres pile :
+       62 de demi-hauteur pour 108 de base. -->
+  <path class="or" d="M 91,94 L 199,156 L 91,218 Z"/>
+
+  <!-- Le satroka pose dessus. Son bord recouvre le coin haut-gauche du
+       triangle : le triangle sort de dessous, comme une tete sort d un
+       chapeau.
+       Incline de 10 degres seulement. A 30 — la pente du triangle — il se
+       lisait comme un chapeau en train de glisser, pas comme un chapeau
+       pose. A 10 il est porte. -->
+  <g class="pose">
+  <g transform="rotate(10 123 100)">
+    <!-- La calotte : cloche profonde, 76 de large pour 64 de haut, d apres
+         le vrai chapeau — pas la calotte basse que mes sources decrivaient.
+         Sa base descend a 98, sous le bord superieur du bord (90 au
+         centre) : sans ca un filet blanc apparaissait entre les deux.
+         Plus large (88x80) elle ecrasait le triangle — ca se lisait comme
+         un abat-jour. Le play doit rester la forme principale. -->
+    <path class="menthe" d="
+      M 85,98
+      C 85,54 96,34 123,34
+      C 150,34 161,54 161,98
+      Z"/>
+    <!-- Le bord, court, pointes relevees. -->
+    <path class="menthe" d="
+      M 69,83 Q 123,97 177,83
+      A 9,9 0 0 1 177,101
+      Q 123,115 69,101
+      A 9,9 0 0 1 69,83 Z"/>
+  </g>
+  </g>
+</svg>

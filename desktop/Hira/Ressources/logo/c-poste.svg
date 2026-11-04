@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"
+     role="img" aria-label="RadiokoLeka">
+  <title>RadiokoLeka — C, le poste</title>
+
+  <!-- Couleurs du projet, declarees une seule fois.
+       Elles viennent de desktop/Hira/Sources/Reglages.swift :
+         accent #F2C94C « Or »     — ce qui est actif, en cours, choisi
+         second #7BD88F « Menthe » — la progression, les accents discrets -->
+  <style>
+    .or     { fill: #F2C94C }
+    .menthe { fill: #7BD88F }
+  </style>
+
+  <!-- Mise a l echelle de la marque entiere : elle ne faisait que 176 px de
+       large la ou A et B en font 208, elle paraissait plus petite a taille
+       egale sur la planche. 208/176 = 1.18, autour du centre. -->
+  <g transform="translate(128,128) scale(1.18) translate(-128,-128)">
+
+  <!-- L antenne. Elle est conique et son pied est enterre dans la calotte,
+       qui est dessinee par dessus : plus de bâton plante, elle pousse du
+       chapeau. -->
+  <path class="or" d="M 146,132 L 200.8,71.8 L 209.2,80.2 L 164,120 Z"/>
+  <circle class="or" cx="204" cy="77" r="9"/>
+
+  <!-- La calotte, percee du triangle de lecture (evenodd : un vrai trou,
+       donc lisible sur fond clair comme sur fond sombre). Agrandi a 42x38
+       pour la meme raison que dans A : il disparaissait a 16 px. -->
+  <path class="or" fill-rule="evenodd" d="
+    M 72,174
+    C 72,126 94,106 128,106
+    C 162,106 184,126 184,174
+    Z
+    M 112,124 L 154,143 L 112,162 Z"/>
+
+  <!-- Le bord, plat, qui porte tout : le chapeau est le poste. -->
+  <rect class="menthe" x="40" y="174" width="176" height="18" rx="9"/>
+  </g>
+</svg>

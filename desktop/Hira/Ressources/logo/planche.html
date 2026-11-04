@@ -1,0 +1,129 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>RadiokoLeka — planche de contact</title>
+<style>
+  :root { --or:#F2C94C; --menthe:#7BD88F; --clair:#FAFAF7; --sombre:#17181C; }
+  body { margin:0; padding:40px; font:14px/1.5 -apple-system,BlinkMacSystemFont,sans-serif;
+         background:var(--clair); color:#17181C }
+  h1 { font-size:20px; font-weight:600; margin:0 0 4px }
+  p.note { color:#6B6F76; margin:0 0 36px; max-width:62ch }
+  section { margin-bottom:48px }
+  h2 { font-size:15px; font-weight:600; margin:0 0 2px }
+  h2 small { font-weight:400; color:#6B6F76 }
+  .idee { color:#6B6F76; margin:0 0 16px; max-width:62ch }
+  .bandes { display:flex; gap:16px; flex-wrap:wrap }
+  .bande { padding:24px; border-radius:12px; display:flex; align-items:flex-end; gap:28px }
+  .bande.clair  { background:var(--clair); border:1px solid #E4E4E0 }
+  .bande.sombre { background:var(--sombre) }
+  figure { margin:0; text-align:center }
+  figcaption { margin-top:10px; font-size:11px; color:#9A9EA6; font-variant-numeric:tabular-nums }
+  .bande.sombre figcaption { color:#71757D }
+  /* tailles reelles : aucune mise a l echelle au rendu */
+  .s1024 { width:1024px; height:1024px }
+  .s128  { width:128px;  height:128px }
+  .s32   { width:32px;   height:32px }
+  .s16   { width:16px;   height:16px }
+  .grand { overflow:auto }
+  .grand .bande { align-items:flex-start }
+</style>
+
+<h1>RadiokoLeka — trois propositions</h1>
+<p class="note">
+  Chaque marque aux quatre tailles demandees, sur fond clair et sur fond sombre.
+  Les 16 et 32 px sont a leur taille reelle a l ecran : c est la barre des menus.
+  Or <code>#F2C94C</code>, menthe <code>#7BD88F</code> — les deux couleurs de
+  <code>Reglages.swift</code>. Le triangle de lecture est un trou dans la calotte :
+  il prend la couleur du fond, c est pour ca qu il tient sur les deux themes.
+</p>
+
+<section>
+  <h2>A — satraha <small>· la cloche et l onde</small></h2>
+  <p class="idee">Le chapeau de face, redessine d apres le vrai satroka : une cloche profonde
+     (148 de large pour 118 de haut), bord court. Le bord s eloigne en une onde, qui est aussi
+     la barre de progression de l app. La calotte profonde donne au triangle la place d etre
+     lisible a 16 px.</p>
+  <div class="bandes">
+    <div class="bande clair">
+      <figure><img class="s128" src="a-satraha.svg"><figcaption>128</figcaption></figure>
+      <figure><img class="s32" src="a-satraha.svg"><figcaption>32</figcaption></figure>
+      <figure><img class="s16" src="a-satraha.svg"><figcaption>16</figcaption></figure>
+    </div>
+    <div class="bande sombre">
+      <figure><img class="s128" src="a-satraha.svg"><figcaption>128</figcaption></figure>
+      <figure><img class="s32" src="a-satraha.svg"><figcaption>32</figcaption></figure>
+      <figure><img class="s16" src="a-satraha.svg"><figcaption>16</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>B — le chapeau de trois quarts <small>· vu d un peu au-dessus</small></h2>
+  <p class="idee">Le meme chapeau vu d un peu plus haut : le bord devient une ellipse, la calotte
+     passe devant. Silhouette compacte, presque carree — c est celle qui fera la meilleure icone
+     d application.</p>
+  <div class="bandes">
+    <div class="bande clair">
+      <figure><img class="s128" src="b-telo-sosona.svg"><figcaption>128</figcaption></figure>
+      <figure><img class="s32" src="b-telo-sosona.svg"><figcaption>32</figcaption></figure>
+      <figure><img class="s16" src="b-telo-sosona.svg"><figcaption>16</figcaption></figure>
+    </div>
+    <div class="bande sombre">
+      <figure><img class="s128" src="b-telo-sosona.svg"><figcaption>128</figcaption></figure>
+      <figure><img class="s32" src="b-telo-sosona.svg"><figcaption>32</figcaption></figure>
+      <figure><img class="s16" src="b-telo-sosona.svg"><figcaption>16</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>C — le poste <small>· l antenne pousse de la calotte</small></h2>
+  <p class="idee">Le chapeau est le poste. L antenne est conique et son pied est enterre dans la
+     calotte, dessinee par dessus : elle pousse du chapeau au lieu d y etre plantee. C est la plus
+     parlante en grand, la plus fragile en petit — l antenne ne fait qu un pixel a 16.</p>
+  <div class="bandes">
+    <div class="bande clair">
+      <figure><img class="s128" src="c-poste.svg"><figcaption>128</figcaption></figure>
+      <figure><img class="s32" src="c-poste.svg"><figcaption>32</figcaption></figure>
+      <figure><img class="s16" src="c-poste.svg"><figcaption>16</figcaption></figure>
+    </div>
+    <div class="bande sombre">
+      <figure><img class="s128" src="c-poste.svg"><figcaption>128</figcaption></figure>
+      <figure><img class="s32" src="c-poste.svg"><figcaption>32</figcaption></figure>
+      <figure><img class="s16" src="c-poste.svg"><figcaption>16</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>D — satro-bory <small>· l anneau, sans chapeau</small></h2>
+  <p class="idee">Le disque dans l anneau ouvert. C est le plus solide en petit et le plus proche
+     d une icone d application — mais il ne contient pas le chapeau : c est un bouton lecture dans
+     une bague de progression. A peser contre A.</p>
+  <div class="bandes">
+    <div class="bande clair">
+      <figure><img class="s128" src="b-satro-bory.svg"><figcaption>128</figcaption></figure>
+      <figure><img class="s32" src="b-satro-bory.svg"><figcaption>32</figcaption></figure>
+      <figure><img class="s16" src="b-satro-bory.svg"><figcaption>16</figcaption></figure>
+    </div>
+    <div class="bande sombre">
+      <figure><img class="s128" src="b-satro-bory.svg"><figcaption>128</figcaption></figure>
+      <figure><img class="s32" src="b-satro-bory.svg"><figcaption>32</figcaption></figure>
+      <figure><img class="s16" src="b-satro-bory.svg"><figcaption>16</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="grand">
+  <h2>1024 px</h2>
+  <p class="idee">La meme marque a la taille d une icone Retina pleine.</p>
+  <div class="bandes">
+    <div class="bande clair"><figure><img class="s1024" src="a-satraha.svg"><figcaption>A · clair</figcaption></figure></div>
+    <div class="bande sombre"><figure><img class="s1024" src="a-satraha.svg"><figcaption>A · sombre</figcaption></figure></div>
+    <div class="bande clair"><figure><img class="s1024" src="b-telo-sosona.svg"><figcaption>B · clair</figcaption></figure></div>
+    <div class="bande sombre"><figure><img class="s1024" src="b-telo-sosona.svg"><figcaption>B · sombre</figcaption></figure></div>
+    <div class="bande clair"><figure><img class="s1024" src="c-poste.svg"><figcaption>C · clair</figcaption></figure></div>
+    <div class="bande sombre"><figure><img class="s1024" src="c-poste.svg"><figcaption>C · sombre</figcaption></figure></div>
+    <div class="bande clair"><figure><img class="s1024" src="b-satro-bory.svg"><figcaption>D · clair</figcaption></figure></div>
+    <div class="bande sombre"><figure><img class="s1024" src="b-satro-bory.svg"><figcaption>D · sombre</figcaption></figure></div>
+  </div>
+</section>

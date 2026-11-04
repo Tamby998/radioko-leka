@@ -1,0 +1,58 @@
+RadiokoLeka
+===========
+
+Glisse RadiokoLeka sur le dossier Applications, a cote.
+
+
+AU PREMIER LANCEMENT, macOS VA REFUSER
+--------------------------------------
+
+L'app n'est pas signee par un compte de developpeur Apple. macOS la bloque
+donc la premiere fois, en disant qu'elle "ne peut pas etre ouverte parce que
+son developpeur ne peut pas etre verifie".
+
+C'est normal, et voici comment passer outre :
+
+  1. essaie d'ouvrir l'app une premiere fois — le refus apparait ;
+  2. ouvre Reglages Systeme, puis Confidentialite et securite ;
+  3. descends jusqu'au message qui mentionne RadiokoLeka ;
+  4. clique sur « Ouvrir quand meme ».
+
+Sur macOS 15 et au-dela, le clic droit puis « Ouvrir » ne suffit plus : Apple
+a retire ce raccourci. Il faut passer par les Reglages.
+
+Une seule fois. Ensuite elle s'ouvre normalement.
+
+
+CE QU'IL FAUT
+-------------
+
+  - macOS 13 (Ventura) ou plus recent ;
+  - une connexion : le catalogue, les paroles et les radios viennent du
+    reseau. Rien n'est telecharge sur ton disque.
+
+
+PREMIER PAS
+-----------
+
+L'app lance la lecture toute seule, sur un titre au hasard de la selection
+malgache. Si tu preferes qu'elle s'ouvre en silence : Commande-virgule, puis
+« A l'ouverture ».
+
+  - la colonne de gauche : radios en direct, tes listes, puis les genres ;
+  - le bouton « Paroles » en bas quand le titre en a ;
+  - clique la pochette, en bas a gauche, pour la voir en grand ;
+  - Commande-virgule ouvre les reglages : theme, couleurs, volume, vitesse.
+
+
+CE QUI NE MARCHERA PAS, ET POURQUOI
+-----------------------------------
+
+Certains clips refusent de jouer. Ce n'est pas un defaut de l'app : leur
+ayant droit interdit la lecture hors de YouTube, et cela ne s'annonce qu'au
+moment de lire. L'app passe alors au suivant et retient le refus — le clip
+ne te sera plus propose.
+
+C'est pour cette raison que le catalogue est profond en musique malgache et
+mince ailleurs : les ayants droit malgaches autorisent, les majors
+anglo-saxonnes non.

@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"
+     role="img" aria-label="RadiokoLeka">
+  <title>RadiokoLeka — le satroka pose sur la lecture, et l onde</title>
+
+  <!-- Couleurs du projet, declarees une seule fois.
+       Elles viennent de desktop/Hira/Sources/Reglages.swift :
+         accent #F2C94C « Or »     — ce qui est actif, en cours, choisi
+         second #7BD88F « Menthe » — la progression, les accents discrets -->
+  <style>
+    .or     { fill: #F2C94C }
+    .menthe { fill: #7BD88F }
+  </style>
+
+  <!-- Le triangle de lecture. Pentes a 30 degres pile : 44 de demi-hauteur
+       pour 76 de base. Reduit de 108 a 76 pour laisser la place aux ondes
+       sans que la marque devienne une colonne. -->
+  <path class="or" d="M 104,66 L 180,110 L 104,154 Z"/>
+
+  <!-- Le satroka pose dessus. Son bord recouvre le coin haut-gauche du
+       triangle : le triangle sort de dessous, comme une tete sort d un
+       chapeau. Incline de 10 degres — a 30, la pente du triangle, il se
+       lisait comme un chapeau en train de glisser. -->
+  <g class="chapeau" transform="rotate(10 127 66)">
+    <!-- La calotte : cloche profonde d apres le vrai chapeau. Sa base
+         descend a 70, sous le bord superieur du bord (64 au centre) :
+         sans ca un filet blanc apparait entre les deux. -->
+    <path class="menthe" d="
+      M 101,70
+      C 101,39 108,26 127,26
+      C 146,26 153,39 153,70
+      Z"/>
+    <!-- Le bord, court, pointes relevees. -->
+    <path class="menthe" d="
+      M 89,59 Q 127,70 165,59
+      A 7,7 0 0 1 165,73
+      Q 127,84 89,73
+      A 7,7 0 0 1 89,59 Z"/>
+  </g>
+
+  <!-- Les trois ondes. Meme epaisseur (14), largeurs decroissantes
+       108 / 72 / 36, ecarts egaux de 9 : c est la regularite qui les fait
+       lire comme une emission et pas comme trois traits empiles.
+       L ecart au triangle est de 15, volontairement plus grand, pour
+       detacher la marque de son onde. -->
+  <path class="menthe" d="
+    M 74,163 Q 128,175 182,163
+    A 7,7 0 0 1 182,177
+    Q 128,189 74,177
+    A 7,7 0 0 1 74,163 Z"/>
+  <path class="menthe" d="
+    M 92,187 Q 128,197 164,187
+    A 7,7 0 0 1 164,201
+    Q 128,211 92,201
+    A 7,7 0 0 1 92,187 Z"/>
+  <path class="menthe" d="
+    M 110,211 Q 128,219 146,211
+    A 7,7 0 0 1 146,225
+    Q 128,233 110,225
+    A 7,7 0 0 1 110,211 Z"/>
+</svg>

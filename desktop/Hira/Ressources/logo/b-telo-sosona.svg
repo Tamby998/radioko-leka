@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"
+     role="img" aria-label="RadiokoLeka">
+  <title>RadiokoLeka — B, le chapeau de trois quarts</title>
+
+  <!-- Couleurs du projet, declarees une seule fois.
+       Elles viennent de desktop/Hira/Sources/Reglages.swift :
+         accent #F2C94C « Or »     — ce qui est actif, en cours, choisi
+         second #7BD88F « Menthe » — la progression, les accents discrets -->
+  <style>
+    .or     { fill: #F2C94C }
+    .menthe { fill: #7BD88F }
+  </style>
+
+  <!-- Le chapeau vu d un peu au-dessus : le bord devient une ellipse.
+       On ne dessine que sa moitie avant : la moitie arriere serait cachee
+       par la calotte de toute facon, et elle se voyait dans le trou du
+       triangle. -->
+  <path class="menthe" d="
+    M 24,147
+    A 104,40 0 0 0 232,147
+    L 194,147
+    A 66,20  0 0 1 62,147
+    Z"/>
+
+  <!-- La calotte. Son pied epouse l avant de l ellipse : elle cache le
+       bord arriere et laisse passer le bord avant. Une seule forme.
+       Triangle de lecture en vrai trou (evenodd), comme partout ailleurs.
+       Ses deux pentes sont a 30 degres pile : 26 de demi-hauteur pour 45 de
+       base. A 27,6 degres ca se lisait comme un trace rate. -->
+  <path class="or" fill-rule="evenodd" d="
+    M 62,147
+    C 62,99 90,69 128,69
+    C 166,69 194,99 194,147
+    A 66,24 0 0 1 62,147
+    Z
+    M 113,92 L 158,118 L 113,144 Z"/>
+</svg>

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256"
+     role="img" aria-label="RadiokoLeka">
+  <title>RadiokoLeka — A, satraha</title>
+
+  <!-- Couleurs du projet, declarees une seule fois.
+       Elles viennent de desktop/Hira/Sources/Reglages.swift :
+         accent #F2C94C « Or »     — ce qui est actif, en cours, choisi
+         second #7BD88F « Menthe » — la progression, les accents discrets -->
+  <style>
+    .or     { fill: #F2C94C }
+    .menthe { fill: #7BD88F }
+  </style>
+
+  <!-- La calotte. D apres le vrai satroka : une cloche profonde, 148 de large
+       pour 118 de haut — pas la calotte basse que mes sources ecrites
+       decrivaient. Flancs presque droits qui s arrondissent au sommet.
+       Sa base descend a 158, sous le bord qui la recouvre : une silhouette.
+       Le triangle de lecture est un vrai trou (evenodd) : il prend la
+       couleur du fond, donc il tient sur le theme clair comme sur le sombre.
+       Pentes a 30 degres pile (30 de demi-hauteur pour 52 de base). La
+       calotte profonde lui laisse enfin la place d etre lisible a 16 px. -->
+  <path class="or" fill-rule="evenodd" d="
+    M 54,158
+    C 54,84 76,40 128,40
+    C 180,40 202,84 202,158
+    Z
+    M 111,70 L 163,100 L 111,130 Z"/>
+
+  <!-- Le bord, court : 30 de debord de chaque cote, pas 42. Pointes
+       relevees, comme sur le chapeau reel. Pointes a 35/221 et non 24/232 :
+       les bouts arrondis debordaient, la marque mangeait ses marges. -->
+  <path class="menthe" d="
+    M 35,140 Q 128,164 221,140
+    A 11,11 0 0 1 221,162
+    Q 128,186 35,162
+    A 11,11 0 0 1 35,140 Z"/>
+
+  <!-- L onde : le bord qui s eloigne. Une seule, pas deux — la calotte
+       profonde prend la hauteur, et a 16 px la deuxieme n etait plus
+       qu une bouillie pale. C est aussi la barre de progression. -->
+  <path class="menthe" d="
+    M 76,194 Q 128,206 180,194
+    A 8,8 0 0 1 180,210
+    Q 128,222 76,210
+    A 8,8 0 0 1 76,194 Z"/>
+</svg>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>CFBundleName</key><string>RadiokoLeka</string>
+  <key>CFBundleDisplayName</key><string>RadiokoLeka</string>
+  <key>CFBundleIdentifier</key><string>xyz.radiokoleka.app</string>
+  <key>CFBundleExecutable</key><string>RadiokoLeka</string>
+  <key>CFBundleIconFile</key><string>RadiokoLeka</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>0.1.0</string>
+  <!-- Doit suivre MIN dans le Makefile : compiler pour 13 ne sert a rien si
+       cette cle dit 14, macOS refusant alors d ouvrir l app. -->
+  <key>LSMinimumSystemVersion</key><string>13.0</string>
+  <key>NSHighResolutionCapable</key><true/>
+  <key>NSAppTransportSecurity</key><dict>
+    <!-- Le serveur interne ne parle que la boucle locale, en clair. -->
+    <key>NSAllowsLocalNetworking</key><true/>
+    <!-- Beaucoup de radios diffusent encore en http : 4 stations malgaches sur
+         18, 25 francaises sur 51, 28 americaines sur 60. Sans cette cle elles
+         sont bloquees en silence — « joue » s affiche et rien ne sort.
+         `ForMedia` n ouvre le texte clair qu aux chargements AVFoundation : la
+         recherche, les paroles et le Worker restent en TLS obligatoire. On ne
+         choisit pas les adresses, les radios les publient. -->
+    <key>NSAllowsArbitraryLoadsForMedia</key><true/>
+  </dict>
+</dict></plist>
