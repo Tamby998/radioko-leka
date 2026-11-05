@@ -103,6 +103,25 @@ class Track {
     if (!can(c)) throw CapabilityError(this, c);
   }
 
+  /// Pour les listes locales : elles gardent le titre entier, pas une
+  /// reference. Une liste doit rester lisible meme si le Worker ne repond
+  /// pas, et un identifiant seul ne permet d'afficher ni titre ni pochette.
+  Map<String, dynamic> toJson() => {
+        'uri': uri,
+        'source': source,
+        'externalId': externalId,
+        'title': title,
+        'artists': [
+          for (final a in artists)
+            {'id': a.id, 'source': a.source, 'name': a.name}
+        ],
+        'durationMs': duration.inMilliseconds,
+        'capabilities': [for (final c in capabilities) c.name],
+        'requiresVisiblePlayer': requiresVisiblePlayer,
+        if (artworkUrl != null) 'artworkUrl': artworkUrl,
+        if (streamUrl != null) 'streamUrl': streamUrl,
+      };
+
   factory Track.fromJson(Map<String, dynamic> json) => Track(
         uri: json['uri'] as String,
         source: json['source'] as String,

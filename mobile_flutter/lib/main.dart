@@ -4,6 +4,7 @@ import 'player/playback_controller.dart';
 import 'services/api_client.dart';
 import 'ui/rayons.dart';
 import 'ui/lecteur.dart';
+import 'ui/listes.dart';
 import 'ui/radios.dart';
 import 'ui/recherche.dart';
 
@@ -33,6 +34,14 @@ class RadiokoLekaApp extends StatefulWidget {
 class _RadiokoLekaAppState extends State<RadiokoLekaApp> {
   final RadiokoLekaApi _api = RadiokoLekaApi(baseUrl: apiBaseUrl);
   final PlaybackController _lecture = PlaybackController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Les listes sont sur le disque : on les relit avant que l'onglet ne
+    // s'ouvre, sinon il s'affiche vide une fraction de seconde.
+    magasinListes.charger();
+  }
 
   @override
   void dispose() {
@@ -83,12 +92,20 @@ class _AccueilState extends State<Accueil> {
       // IndexedStack et non un simple switch : changer d'onglet ne doit pas
       // relancer les appels reseau de celui qu'on quitte.
       body: SafeArea(
-        child: IndexedStack(
+        child: Column(
+          children: [
+            const EnTete(),
+            Expanded(
+              child: IndexedStack(
           index: _onglet,
           children: [
             VueRadios(api: widget.api, lecture: widget.lecture),
             VueRayons(api: widget.api, lecture: widget.lecture),
             VueRecherche(api: widget.api, lecture: widget.lecture),
+            VueListes(api: widget.api, lecture: widget.lecture),
+          ],
+              ),
+            ),
           ],
         ),
       ),
@@ -114,7 +131,37 @@ class _AccueilState extends State<Accueil> {
                 icon: Icon(Icons.search),
                 label: 'Recherche',
               ),
+              NavigationDestination(
+                icon: Icon(Icons.queue_music_outlined),
+                selectedIcon: Icon(Icons.queue_music),
+                label: 'Listes',
+              ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Le bandeau du haut : le logo, et le nom qu'il porte.
+class EnTete extends StatelessWidget {
+  const EnTete({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      child: Row(
+        children: [
+          Image.asset('assets/logo.png', width: 28, height: 28),
+          const SizedBox(width: 8),
+          Text(
+            'RadiokoLeka',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
           ),
         ],
       ),
@@ -187,6 +234,10 @@ class BarreDuTitre extends StatelessWidget {
                       lecture.enLecture ? Icons.pause : Icons.play_arrow,
                     ),
                   ),
+                  IconButton(
+                    onPressed: lecture.suivant,
+                    icon: const Icon(Icons.skip_next),
+                  ),
                 ],
               ),
             ),
@@ -214,17 +265,25 @@ class Pochette extends StatelessWidget {
       child: Icon(Icons.music_note, size: taille * 0.5),
     );
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(6),
-      child: url == null
-          ? repli
-          : Image.network(
-              url!,
-              width: taille,
-              height: taille,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => repli,
-            ),
+    // Le SizedBox n est pas decoratif : sur le web, une image refusee par
+    // CORS ne declenche pas toujours `errorBuilder`, et la case se reduisait
+    // a rien — quatre stations sur dix affichaient un titre decale, sans
+    // vignette ni trou. Le cadre est reserve d abord, rempli ensuite.
+    return SizedBox(
+      width: taille,
+      height: taille,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: url == null
+            ? repli
+            : Image.network(
+                url!,
+                width: taille,
+                height: taille,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => repli,
+              ),
+      ),
     );
   }
 }
