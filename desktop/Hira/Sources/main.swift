@@ -88,10 +88,14 @@ final class Coordination {
     lecteur.surLectureSysteme = { [weak self] in
       self?.appliquerSon()
       self?.publierLecture()
+      // Preuve que la lecture marche : les refus en attente deviennent
+      // definitifs, et le compteur de panne repart de zero.
+      self?.memoire.succes()
     }
     audio.surLectureSysteme = { [weak self] in
       self?.appliquerSon()
       self?.publierLecture()
+      self?.memoire.succes()
     }
     // Un flux illisible se comporte comme un clip refuse : on le retient et on
     // enchaine, plutot que de laisser la lecture mourir dessus.

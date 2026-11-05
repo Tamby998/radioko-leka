@@ -140,6 +140,62 @@ verifier("le diese est tolere", {
   return true
 }())
 
+// --- Memoire des refus --------------------------------------------------
+
+print("\nMemoire des refus")
+
+// Le 5 novembre 2026, une panne d integration YouTube a fait echouer tous les
+// clips. L app a condamne 89 titres et banni 20 chaines — presque tous les
+// artistes malgaches du catalogue. Ces verifications tiennent le garde-fou
+// pose ensuite : un refus n est grave qu une fois qu une lecture a reussi
+// derriere, et une serie de refus sans aucune reussite n est pas croyable.
+
+@MainActor
+func memoireNeuve() -> MemoireDesRefus {
+  let dossier = URL(fileURLWithPath: NSTemporaryDirectory())
+    .appendingPathComponent("rl-tests-\(UUID().uuidString)", isDirectory: true)
+  try? FileManager.default.createDirectory(at: dossier, withIntermediateDirectories: true)
+  return MemoireDesRefus(dossier: dossier)
+}
+
+MainActor.assumeIsolated {
+  let m = memoireNeuve()
+  m.retenir("youtube:a", chaine: "ch1", pourquoi: "erreur:150")
+  egal("un refus seul n est pas encore grave", m.uris.count, 0)
+  m.succes()
+  egal("il l est une fois qu un titre a joue", m.uris.count, 1)
+  verifier("et il est bien retenu", m.contient("youtube:a"))
+
+  let panne = memoireNeuve()
+  for i in 0..<12 {
+    panne.retenir("youtube:p\(i)", chaine: "ch\(i)", pourquoi: "erreur:150")
+  }
+  egal("douze refus d affilee n en gravent aucun", panne.uris.count, 0)
+  egal("et aucune chaine n est comptee", panne.chaines.count, 0)
+  panne.succes()
+  egal("une reussite apres la panne ne ressuscite rien", panne.uris.count, 0)
+
+  let chaine = memoireNeuve()
+  chaine.retenir("youtube:x", chaine: "meme", pourquoi: "erreur:150")
+  chaine.retenir("youtube:y", chaine: "meme", pourquoi: "erreur:150")
+  chaine.succes()
+  verifier("deux refus sur une chaine l ecartent",
+           chaine.chainesEcartees.contains("meme"))
+
+  let pays = memoireNeuve()
+  pays.retenir("radio:1", chaine: "radio:MG", pourquoi: "flux mort")
+  pays.retenir("radio:2", chaine: "radio:MG", pourquoi: "flux mort")
+  pays.succes()
+  verifier("deux flux morts ne bannissent pas un pays",
+           !pays.chainesEcartees.contains("radio:MG"))
+
+  let remise = memoireNeuve()
+  remise.retenir("youtube:z", chaine: "ch", pourquoi: "erreur:150")
+  remise.succes()
+  remise.toutOublier()
+  egal("tout oublier vide la memoire", remise.uris.count, 0)
+}
+
 // --- Bilan --------------------------------------------------------------
 
 print("\n\(passes) verifications passent, \(echecs) echouent\n")

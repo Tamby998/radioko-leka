@@ -1,3 +1,4 @@
+import { sondeEmbed } from './sonde-embed.ts';
 import { AudiusSource } from './sources/audius.ts';
 import { JamendoSource } from './sources/jamendo.ts';
 import { parseVideoId, rangEditorial, YouTubeSource } from './sources/youtube.ts';
@@ -52,6 +53,9 @@ export default {
         case path === '/':
         case path === '/v1/health':
           return json({ ok: true, service: 'radiokoleka-api', version: '0.1.0' });
+
+        case path === '/sonde-embed':
+          return sondeEmbed();
 
         case path === '/v1/search':
           return json(await search(env, url));
