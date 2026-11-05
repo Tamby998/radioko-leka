@@ -413,7 +413,7 @@ final class Coordination {
       etat.file = (etat.aleatoire ? reste.shuffled() : reste)
         .filter { !etat.refuses.contains($0.uri) }
     }
-    lancer(titre)
+    lancer(titre, parUnClic: true)
   }
 
   /// Bat la file en cours, sans toucher au titre qui joue.
@@ -433,7 +433,13 @@ final class Coordination {
     return true
   }
 
-  private func lancer(_ titre: Titre, reprise: Bool = false) {
+  /// `parUnClic` distingue une intention d un enchainement.
+  ///
+  /// Le repos existe pour ne pas marteler un reseau que YouTube refuse — une
+  /// sortie de VPN, le plus souvent. Mais il ne doit jamais retenir un clic :
+  /// celui qui vient de couper son VPN attend que ca reparte tout de suite,
+  /// pas dans un quart d heure.
+  private func lancer(_ titre: Titre, reprise: Bool = false, parUnClic: Bool = false) {
     if !reprise, let courant = etat.courant, courant != titre { historique.append(courant) }
     etat.courant = titre
     etat.paroles = []
@@ -444,6 +450,17 @@ final class Coordination {
     // Les capacites du titre decident du moteur, pas sa source. Meme frontiere
     // que cote Worker, cote navigateur et cote terminal.
     if let video = titre.video, titre.videoObligatoire {
+      // Pendant le repos, on ne charge pas de lecteur. C est ici que le mal se
+      // faisait : chaque tentative pendant une panne nourrissait la panne.
+      // Refuser de demander est le correctif, pas une consolation.
+      if memoire.enRepos, !parUnClic {
+        etat.message = "YouTube refuse la lecture anonyme depuis ce reseau"
+          + " — souvent un VPN. Clique un titre pour reessayer."
+        journaliser("repos : enchainement suspendu (\(titre.title))")
+        lecteur.stopper()
+        audio.arreter()
+        return
+      }
       audio.arreter()
       lecteur.jouer(video)
     } else if let flux = titre.streamUrl, let url = URL(string: flux) {
@@ -612,7 +629,7 @@ final class Coordination {
     let passes = etat.file.prefix(index)
     etat.file.removeFirst(index + 1)
     if !passes.isEmpty { journaliser("saut dans la file : \(passes.count) titres passes") }
-    lancer(titre)
+    lancer(titre, parUnClic: true)
   }
 
   func retirerDeLaFile(_ uri: String) {
@@ -672,6 +689,20 @@ final class Coordination {
     guard let courant = etat.courant else { return }
     if refus.estLeClip {
       retenirRefus(courant.uri, "erreur \(refus.rawValue)")
+
+      // Quand la chaine de lecture est suspecte, enchainer est nuisible :
+      // chaque titre coute huit secondes pour echouer pareil, et l app finit
+      // sur une file vide sans avoir rien explique. On s arrete, et on dit la
+      // vraie raison plutot que « indisponible ».
+      if memoire.panneSuspectee {
+        etat.message = "YouTube refuse la lecture anonyme depuis ce reseau"
+          + " (erreur \(refus.rawValue)) — souvent un VPN."
+        journaliser("reseau refuse par YouTube : enchainement arrete,"
+                    + " un clic reessaie")
+        lecteur.stopper()
+        return
+      }
+
       suivant()
     } else {
       etat.message = "Origine refusee par YouTube (153) — le serveur interne n a pas servi la page."

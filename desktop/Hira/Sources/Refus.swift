@@ -41,6 +41,40 @@ final class MemoireDesRefus: ObservableObject {
   private var refusDAffilee = 0
   private var panneSignalee = false
 
+  /// Vrai quand la chaine de lecture elle-meme est suspecte.
+  ///
+  /// L app a besoin de le savoir, pas seulement le journal : tant que c est
+  /// vrai, parcourir la file titre par titre ne fait que perdre huit secondes
+  /// par titre pour finir sur rien. Mieux vaut s arreter et le dire.
+  var panneSuspectee: Bool { panneSignalee }
+
+  /// Combien de temps l app cesse de solliciter YouTube apres une panne.
+  ///
+  /// La porte de YouTube se referme sur la reputation d une adresse IP, et
+  /// elle se nourrit du trafic automatique. Le 5 novembre 2026, l app a
+  /// enchaine 89 chargements de lecteur en quelques minutes : devant une
+  /// erreur 150 elle passait au titre suivant sans attendre, qui echouait,
+  /// puis le suivant. Chaque echec entretenait la cause de l echec.
+  ///
+  /// Un quart d heure de silence n est pas une politesse, c est le seul moyen
+  /// connu de laisser la porte se rouvrir.
+  static let REPOS_APRES_PANNE: TimeInterval = 15 * 60
+
+  private var momentDeLaPanne: Date?
+
+  /// Vrai tant qu il faut laisser YouTube tranquille.
+  var enRepos: Bool {
+    guard let depuis = momentDeLaPanne else { return false }
+    return Date().timeIntervalSince(depuis) < Self.REPOS_APRES_PANNE
+  }
+
+  /// Secondes restantes avant le prochain essai, pour le dire a l ecran.
+  var reposRestant: Int {
+    guard let depuis = momentDeLaPanne else { return 0 }
+    let reste = Self.REPOS_APRES_PANNE - Date().timeIntervalSince(depuis)
+    return reste > 0 ? Int(reste.rounded(.up)) : 0
+  }
+
   private let fichier: URL
   private let journal: (String) -> Void
 
@@ -95,6 +129,8 @@ final class MemoireDesRefus: ObservableObject {
         journal("panne generale suspectee : \(refusDAffilee) refus d affilee,"
                 + " aucun n est enregistre tant qu un titre n aura pas joue")
       }
+      // Chaque refus repousse le repos : tant que ca echoue, on se tait.
+      momentDeLaPanne = Date()
       enAttente.removeAll()
       return
     }
@@ -107,6 +143,7 @@ final class MemoireDesRefus: ObservableObject {
   /// refus observes juste avant portent bien sur leurs clips.
   func succes() {
     refusDAffilee = 0
+    momentDeLaPanne = nil
     panneSignalee = false
     guard !enAttente.isEmpty else { return }
 

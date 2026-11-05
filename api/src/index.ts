@@ -55,7 +55,7 @@ export default {
           return json({ ok: true, service: 'radiokoleka-api', version: '0.1.0' });
 
         case path === '/sonde-embed':
-          return sondeEmbed();
+          return sondeEmbed(url);
 
         case path === '/v1/search':
           return json(await search(env, url));

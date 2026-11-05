@@ -172,8 +172,26 @@ MainActor.assumeIsolated {
   }
   egal("douze refus d affilee n en gravent aucun", panne.uris.count, 0)
   egal("et aucune chaine n est comptee", panne.chaines.count, 0)
+  // L app lit ce drapeau pour arreter d enchainer et nommer la vraie cause
+  // au lieu d afficher « indisponible » sur un titre innocent.
+  egal("et la panne se signale a l app", panne.panneSuspectee, true)
   panne.succes()
   egal("une reussite apres la panne ne ressuscite rien", panne.uris.count, 0)
+
+  let isole = memoireNeuve()
+  isole.retenir("youtube:seul", chaine: "ch", pourquoi: "erreur:150")
+  egal("un refus isole ne crie pas a la panne", isole.panneSuspectee, false)
+  egal("et il n impose aucun repos", isole.enRepos, false)
+
+  // Le repos est le correctif du 5 novembre : tant qu il court, l app ne
+  // demande plus rien a YouTube, et c est ce qui laisse la porte se rouvrir.
+  let repos = memoireNeuve()
+  for i in 0..<6 { repos.retenir("youtube:r\(i)", chaine: "ch", pourquoi: "erreur:150") }
+  egal("la panne impose un repos", repos.enRepos, true)
+  egal("et il se compte en secondes", repos.reposRestant > 0, true)
+  repos.succes()
+  egal("une lecture reussie leve le repos", repos.enRepos, false)
+  egal("et il ne reste rien a attendre", repos.reposRestant, 0)
 
   let chaine = memoireNeuve()
   chaine.retenir("youtube:x", chaine: "meme", pourquoi: "erreur:150")
