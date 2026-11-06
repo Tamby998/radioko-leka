@@ -5,6 +5,7 @@ import '../models/track.dart';
 import '../player/playback_controller.dart';
 import '../services/api_client.dart';
 import 'echec.dart';
+import 'image_pochette.dart';
 import 'lecteur.dart';
 
 /// Les rayons : un genre racine par carte, avec une mosaique de quatre
@@ -171,10 +172,9 @@ class _Mosaique extends StatelessWidget {
     final fond = Theme.of(context).colorScheme.surfaceContainerHighest;
     final images = pochettes.take(4).toList(growable: false);
 
-    Widget image(String url) => Image.network(
-          url,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => ColoredBox(color: fond),
+    Widget image(String url) => ImagePochette(
+          url: url,
+          repli: ColoredBox(color: fond),
         );
 
     return ClipRRect(

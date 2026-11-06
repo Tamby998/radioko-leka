@@ -86,42 +86,49 @@ class _VueRadiosState extends State<VueRadios> {
           if (_paysDisponibles.isEmpty)
             const SizedBox.shrink()
           else
-            // `Flexible` + `isExpanded` : sans eux le menu se dimensionne sur
-            // son item le plus large — « United States of America (312) » —
-            // et vient recouvrir le titre sur un ecran de telephone.
-            Flexible(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  // Une pastille, pas un menu nu : le pays est un filtre, il
-                  // doit se lire comme un bouton et non comme du texte.
-                  color: couleurs.surfaceContainer,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: DropdownButton<String>(
-                  value: _pays,
-                  isExpanded: true,
-                  alignment: Alignment.centerRight,
-                  borderRadius: BorderRadius.circular(18),
-                  dropdownColor: couleurs.surfaceContainerHigh,
-                  underline: const SizedBox.shrink(),
-                  items: [
-                    for (final p in _paysDisponibles)
-                      DropdownMenuItem(
-                        value: p.code,
-                        child: Text(
-                          '${p.nom} (${p.stations})',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.right,
-                        ),
-                      ),
-                  ],
-                  onChanged: (code) {
-                    if (code == null || code == _pays) return;
-                    setState(() => _pays = code);
-                    _charger();
-                  },
+            // `isExpanded` est indispensable : sans lui le menu se dimensionne
+            // sur son item le plus large — « United States of America (312) »
+            // — et recouvre le titre. Mais laisse libre, il prenait alors
+            // toute la largeur restante. Serre a droite, et borne.
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 240),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      // Une pastille, pas un menu nu : le pays est un filtre, il
+                      // doit se lire comme un bouton et non comme du texte.
+                      color: couleurs.surfaceContainer,
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: DropdownButton<String>(
+                      value: _pays,
+                      isExpanded: true,
+                      alignment: Alignment.centerRight,
+                      borderRadius: BorderRadius.circular(18),
+                      dropdownColor: couleurs.surfaceContainerHigh,
+                      underline: const SizedBox.shrink(),
+                      items: [
+                        for (final p in _paysDisponibles)
+                          DropdownMenuItem(
+                            value: p.code,
+                            child: Text(
+                              '${p.nom} (${p.stations})',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                            ),
+                          ),
+                      ],
+                      onChanged: (code) {
+                        if (code == null || code == _pays) return;
+                        setState(() => _pays = code);
+                        _charger();
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),

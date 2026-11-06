@@ -5,6 +5,7 @@ import 'player/playback_controller.dart';
 import 'player/service_arriere_plan.dart';
 import 'services/api_client.dart';
 import 'ui/barre_flottante.dart';
+import 'ui/image_pochette.dart';
 import 'ui/rayons.dart';
 import 'ui/lecteur.dart';
 import 'ui/listes.dart';
@@ -35,7 +36,18 @@ const _fond = Color(0xFF0E0E11);
 const _surface = Color(0xFF17171B);
 const _surfaceHaute = Color(0xFF212127);
 
-final schemaSombre = const ColorScheme.dark().copyWith(
+/// On part de la graine et on neutralise les surfaces, plutot que d'ecrire
+/// le schema a la main.
+///
+/// Ecrit a la main, il laissait `primaryContainer`, `secondaryContainer` et
+/// les autres jetons aux valeurs d'usine de Flutter : le bouton « Reessayer »
+/// sortait en turquoise, une couleur qui n'existe nulle part dans ce projet.
+/// Un schema incomplet ne se voit pas a la compilation, seulement a l'ecran,
+/// et seulement sur l'ecran qu'on n'a pas regarde.
+final schemaSombre = ColorScheme.fromSeed(
+  seedColor: couleurRadio,
+  brightness: Brightness.dark,
+).copyWith(
   primary: couleurRadio,
   onPrimary: const Color(0xFF1A1503),
   secondary: couleurLeka,
@@ -361,15 +373,23 @@ class Pochette extends StatelessWidget {
         // Le rayon suit la taille : 6 sur une vignette de liste faisait un
         // carre a peine adouci a cote d'une pochette de lecture a 28.
         borderRadius: BorderRadius.circular(taille * 0.26),
-        child: url == null
-            ? repli
-            : Image.network(
-                url!,
+        // Le fond est peint d'abord, l'image par-dessus. Sans lui, une
+        // vignette encore en train de charger ne dessinait rien du tout :
+        // dans une liste, une ligne sur trois n'avait pas de case, juste un
+        // trou, et la liste semblait cassee le temps du chargement.
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            repli,
+            if (url != null)
+              ImagePochette(
+                url: url!,
                 width: taille,
                 height: taille,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => repli,
+                repli: const SizedBox.shrink(),
               ),
+          ],
+        ),
       ),
     );
   }

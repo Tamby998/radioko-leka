@@ -7,6 +7,7 @@ import '../models/track.dart';
 import '../player/playback_controller.dart';
 import '../services/api_client.dart';
 import 'barre_flottante.dart';
+import 'image_pochette.dart';
 import 'karaoke_view.dart';
 import 'listes.dart';
 
@@ -314,11 +315,7 @@ class _VueLecteurState extends State<VueLecteur> {
       child: Icon(titre.estRadio ? Icons.radio : Icons.music_note, size: 72),
     );
     if (art == null) return repli;
-    return Image.network(
-      art,
-      fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => repli,
-    );
+    return ImagePochette(url: art, repli: repli);
   }
 
   Widget _progression(Track titre) {

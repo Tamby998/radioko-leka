@@ -118,8 +118,26 @@ class RadiokoLekaApi {
           .map((t) => Track.fromJson(t as Map<String, dynamic>))
           .toList(growable: false);
 
+  /// Une coupure de transport se reessaie une fois, en silence.
+  ///
+  /// Mesure du 6 novembre 2026 : a chaque ouverture de l'app, la premiere
+  /// requete tombait en « Connection reset by peer » alors qu'un `curl`
+  /// depuis le meme telephone, a la meme seconde, repondait 200. C'est une
+  /// connexion gardee ouverte par le client et fermee de l'autre cote
+  /// pendant qu'elle dormait : la rejouer suffit. Un 4xx ou un 5xx, lui, est
+  /// une reponse — on ne le rejoue pas.
+  ///
+  /// On n'attrape que `ClientException` : `package:http` y enveloppe deja la
+  /// `SocketException`, et importer `dart:io` ici casserait la compilation
+  /// web.
   Future<Map<String, dynamic>> _getJson(Uri uri) async {
-    final res = await _client.get(uri);
+    http.Response res;
+    try {
+      res = await _client.get(uri);
+    } on http.ClientException {
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      res = await _client.get(uri);
+    }
     if (res.statusCode >= 400) {
       throw ApiException(res.statusCode, res.body, uri);
     }

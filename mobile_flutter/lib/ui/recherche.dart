@@ -78,6 +78,9 @@ class _VueRechercheState extends State<VueRecherche> {
   @override
   Widget build(BuildContext context) {
     return Column(
+      // Les titres d'ecran sont cales a gauche partout ailleurs ; sans cette
+      // ligne, la Column centrait celui-ci et lui seul.
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
