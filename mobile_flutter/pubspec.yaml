@@ -15,7 +15,12 @@ dependencies:
 
   # Catalogue mondial : lecteur IFrame officiel, rendu visible. La video reste
   # a l'ecran, et c'est la condition d'une lecture legitime.
-  youtube_player_iframe: ^5.2.0
+  #
+  # La page du lecteur est servie par notre Worker et chargee par son URL.
+  # `youtube_player_iframe` fabriquait la sienne avec une base inventee, que
+  # YouTube refuse sur Android — voir lib/player/lecteur_web.dart.
+  webview_flutter: ^4.14.0
+  webview_flutter_android: ^4.10.0
 
   # Radios et catalogue sous licence : audio natif, arriere-plan possible.
   just_audio: ^0.9.40

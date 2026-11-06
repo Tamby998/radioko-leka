@@ -2,13 +2,10 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-// `hide PlayerState` : les deux paquets definissent ce nom, et sans ce
-// masque le fichier ne compile pas. Seul celui du lecteur YouTube nous sert ;
-// de just_audio on ne prend que `AudioPlayer`.
-import 'package:just_audio/just_audio.dart' hide PlayerState;
-import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:just_audio/just_audio.dart';
 
 import '../models/track.dart';
+import 'lecteur_web.dart';
 
 /// Moteur retenu pour le titre courant.
 enum PlaybackEngine {
@@ -33,7 +30,11 @@ class PlaybackController extends ChangeNotifier {
 
   final AudioPlayer _audio = AudioPlayer();
   final Random _de = Random();
-  YoutubePlayerController? _youtube;
+  LecteurWeb? _web;
+
+  /// Dernier etat annonce par le lecteur officiel : 1 joue, 2 pause, 0 fini.
+  int _etatWeb = -1;
+  Timer? _horloge;
 
   List<Track> _file = const [];
   int _index = -1;
@@ -43,8 +44,6 @@ class PlaybackController extends ChangeNotifier {
 
   StreamSubscription<Duration>? _suiviPosition;
   StreamSubscription<void>? _suiviFin;
-  StreamSubscription<YoutubeVideoState>? _suiviYoutube;
-  StreamSubscription<YoutubePlayerValue>? _suiviEtatYoutube;
 
   bool _aleatoire = false;
   Repetition _repetition = Repetition.aucune;
@@ -65,7 +64,7 @@ class PlaybackController extends ChangeNotifier {
 
   PlaybackEngine get engine => _engine;
   Duration get position => _position;
-  YoutubePlayerController? get youtubeController => _youtube;
+  LecteurWeb? get lecteurWeb => _web;
 
   bool get aleatoire => _aleatoire;
   Repetition get repetition => _repetition;
@@ -74,8 +73,7 @@ class PlaybackController extends ChangeNotifier {
 
   bool get enLecture => switch (_engine) {
         PlaybackEngine.licensedAudio => _audio.playing,
-        PlaybackEngine.youtubeOfficial =>
-          _youtube?.value.playerState == PlayerState.playing,
+        PlaybackEngine.youtubeOfficial => _etatWeb == 1,
         PlaybackEngine.none => false,
       };
 
@@ -204,29 +202,39 @@ class PlaybackController extends ChangeNotifier {
 
   void _jouerYoutube(Track titre) {
     _engine = PlaybackEngine.youtubeOfficial;
-    _youtube = YoutubePlayerController.fromVideoId(
-      videoId: titre.externalId,
-      autoPlay: true,
-      // Le lecteur officiel garde ses controles : c'est la condition pour que
-      // la lecture soit legitime et que la vue soit comptee a l'artiste.
-      params: const YoutubePlayerParams(
-        showControls: true,
-        showFullscreenButton: true,
-      ),
+    _etatWeb = -1;
+
+    // La page est gardee d un titre a l autre : la recreer rechargerait le
+    // lecteur officiel a chaque morceau, pour une seconde d attente et rien
+    // de gagne.
+    _web ??= LecteurWeb(
+      surEtat: (etat) {
+        _etatWeb = etat;
+        if (etat == 0) _surFin();
+        notifyListeners();
+      },
+      surErreur: (code) {
+        // Le refus est remonte tel quel : c est a l ecran de decider s il
+        // faut enchainer ou le dire, pas au moteur.
+        _etatWeb = -1;
+        surRefusYoutube?.call(titre, code);
+        notifyListeners();
+      },
     );
+    _web!.jouer(titre.externalId);
 
-    // La position vient d'un flux du lecteur, pas d'une horloge locale. Une
-    // horloge continue d'avancer quand le lecteur, lui, est bloque.
-    _suiviYoutube = _youtube!.videoStateStream.listen((etat) {
-      _position = etat.position;
-      notifyListeners();
-    });
-
-    _suiviEtatYoutube = _youtube!.stream.listen((v) {
-      if (v.playerState == PlayerState.ended) _surFin();
+    // La position se demande au lecteur, elle ne se compte pas ici : une
+    // horloge locale continue d avancer quand le lecteur est bloque.
+    _horloge?.cancel();
+    _horloge = Timer.periodic(const Duration(milliseconds: 400), (_) async {
+      if (_engine != PlaybackEngine.youtubeOfficial) return;
+      _position = await _web!.position();
       notifyListeners();
     });
   }
+
+  /// Appele quand YouTube refuse un clip, avec son code tel quel.
+  void Function(Track titre, int code)? surRefusYoutube;
 
   void _surFin() {
     if (_repetition == Repetition.titre) {
@@ -241,9 +249,7 @@ class PlaybackController extends ChangeNotifier {
       case PlaybackEngine.licensedAudio:
         _audio.playing ? await _audio.pause() : await _audio.play();
       case PlaybackEngine.youtubeOfficial:
-        _youtube?.value.playerState == PlayerState.playing
-            ? _youtube?.pauseVideo()
-            : _youtube?.playVideo();
+        await _web?.basculer();
       case PlaybackEngine.none:
         break;
     }
@@ -255,7 +261,7 @@ class PlaybackController extends ChangeNotifier {
       case PlaybackEngine.licensedAudio:
         await _audio.seek(to);
       case PlaybackEngine.youtubeOfficial:
-        await _youtube?.seekTo(seconds: to.inMilliseconds / 1000);
+        await _web?.aller(to);
       case PlaybackEngine.none:
         break;
     }
@@ -266,16 +272,16 @@ class PlaybackController extends ChangeNotifier {
   Future<void> _demonter() async {
     await _suiviPosition?.cancel();
     await _suiviFin?.cancel();
-    await _suiviYoutube?.cancel();
-    await _suiviEtatYoutube?.cancel();
     _suiviPosition = null;
     _suiviFin = null;
-    _suiviYoutube = null;
-    _suiviEtatYoutube = null;
+    _horloge?.cancel();
+    _horloge = null;
 
     await _audio.stop();
-    _youtube?.close();
-    _youtube = null;
+    // La page reste en vie, seul le clip s arrete : on la garde d un titre a
+    // l autre. Elle ne part qu avec `dispose`.
+    await _web?.stopper();
+    _etatWeb = -1;
     _engine = PlaybackEngine.none;
     _position = Duration.zero;
   }

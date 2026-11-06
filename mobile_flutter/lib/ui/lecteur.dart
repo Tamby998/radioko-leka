@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:youtube_player_iframe/youtube_player_iframe.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
 import '../main.dart' show Pochette;
 import '../models/lyrics.dart';
@@ -44,6 +44,27 @@ class _VueLecteurState extends State<VueLecteur> {
   SyncedLyrics? _paroles;
   bool _parolesEnCours = true;
   String? _uriDesParoles;
+
+  /// Le carre ou la video doit venir se poser, et la pile qui l'accueille.
+  ///
+  /// On mesure plutot que de deviner : le lecteur est monte une seule fois,
+  /// au meme endroit de l'arbre, et seule sa geometrie change. Le deplacer
+  /// d'un noeud a l'autre detruisait la vue native — mesure du 6 novembre
+  /// 2026, `abandonAudioFocus()` a l'instant exact du clic « Video » — et le
+  /// son se coupait net en montrant le clip.
+  final GlobalKey _pile = GlobalKey();
+  final GlobalKey _creneau = GlobalKey();
+  Rect? _cadreVideo;
+
+  void _mesurerLeCreneau() {
+    final creneau = _creneau.currentContext?.findRenderObject() as RenderBox?;
+    final pile = _pile.currentContext?.findRenderObject() as RenderBox?;
+    if (creneau == null || pile == null) return;
+    if (!creneau.hasSize || !pile.hasSize) return;
+    final cadre = creneau.localToGlobal(Offset.zero, ancestor: pile) &
+        creneau.size;
+    if (cadre != _cadreVideo) setState(() => _cadreVideo = cadre);
+  }
 
   @override
   void initState() {
@@ -114,6 +135,15 @@ class _VueLecteurState extends State<VueLecteur> {
     final l = widget.lecture;
     final titre = l.current ?? widget.titre;
 
+    // Tant que le carre n'est pas mesure, le lecteur reste hors cadre : une
+    // image d'attente vaut mieux qu'un lecteur pose au hasard.
+    final montreLaVideo = l.videoVisible &&
+        l.aUneVideo &&
+        _volet == VoletLecteur.lecture &&
+        _cadreVideo != null;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _mesurerLeCreneau());
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -127,6 +157,7 @@ class _VueLecteurState extends State<VueLecteur> {
         centerTitle: true,
       ),
       body: Stack(
+        key: _pile,
         clipBehavior: Clip.none,
         children: [
           SafeArea(
@@ -137,15 +168,17 @@ class _VueLecteurState extends State<VueLecteur> {
               VoletLecteur.paroles => _voletParoles(),
             },
           ),
-          // Monte en permanence, place hors cadre quand on ne le montre pas.
-          // Le demonter couperait le son, et le reduire a quelques pixels
-          // fait refuser le lecteur : il lui faut 200 points de cote.
-          if (l.aUneVideo && !(l.videoVisible && _volet == VoletLecteur.lecture))
+          // Monte en permanence, au meme noeud, et place hors cadre quand on
+          // ne le montre pas : seule sa geometrie bouge. Le demonter — ou le
+          // deplacer ailleurs dans l'arbre — detache la vue native et coupe
+          // le son. Le reduire a quelques pixels ne marche pas davantage :
+          // le lecteur officiel exige 200 points de cote.
+          if (l.aUneVideo)
             Positioned(
-              left: -400,
-              top: 0,
-              width: 240,
-              height: 135,
+              left: montreLaVideo ? _cadreVideo!.left : -400,
+              top: montreLaVideo ? _cadreVideo!.top : 0,
+              width: montreLaVideo ? _cadreVideo!.width : 240,
+              height: montreLaVideo ? _cadreVideo!.height : 135,
               child: _video(l),
             ),
         ],
@@ -155,9 +188,14 @@ class _VueLecteurState extends State<VueLecteur> {
   }
 
   Widget _video(PlaybackController l) {
-    final c = l.youtubeController;
-    if (c == null) return const SizedBox.shrink();
-    return YoutubePlayer(controller: c, aspectRatio: 16 / 9);
+    final web = l.lecteurWeb;
+    if (web == null) return const SizedBox.shrink();
+    return Center(
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: WebViewWidget(controller: web.controleur),
+      ),
+    );
   }
 
   Widget _voletLecture(Track titre) {
@@ -172,11 +210,15 @@ class _VueLecteurState extends State<VueLecteur> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 28),
               child: AspectRatio(
+                key: _creneau,
                 aspectRatio: 1,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(18),
+                  // Quand la video se montre, ce carre lui cede la place : le
+                  // lecteur n'est pas ici, il est pose par-dessus depuis la
+                  // pile, pour ne jamais changer de noeud.
                   child: l.videoVisible && l.aUneVideo
-                      ? Center(child: _video(l))
+                      ? const SizedBox.expand()
                       : _grandePochette(titre),
                 ),
               ),
@@ -592,3 +634,4 @@ class LigneTitre extends StatelessWidget {
     );
   }
 }
+
