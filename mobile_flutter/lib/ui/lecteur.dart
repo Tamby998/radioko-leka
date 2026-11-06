@@ -6,6 +6,7 @@ import '../models/lyrics.dart';
 import '../models/track.dart';
 import '../player/playback_controller.dart';
 import '../services/api_client.dart';
+import 'barre_flottante.dart';
 import 'karaoke_view.dart';
 import 'listes.dart';
 
@@ -61,8 +62,8 @@ class _VueLecteurState extends State<VueLecteur> {
     final pile = _pile.currentContext?.findRenderObject() as RenderBox?;
     if (creneau == null || pile == null) return;
     if (!creneau.hasSize || !pile.hasSize) return;
-    final cadre = creneau.localToGlobal(Offset.zero, ancestor: pile) &
-        creneau.size;
+    final cadre =
+        creneau.localToGlobal(Offset.zero, ancestor: pile) & creneau.size;
     if (cadre != _cadreVideo) setState(() => _cadreVideo = cadre);
   }
 
@@ -181,6 +182,30 @@ class _VueLecteurState extends State<VueLecteur> {
               height: montreLaVideo ? _cadreVideo!.height : 135,
               child: _video(l),
             ),
+          // Les coins de la video, peints par-dessus et non decoupes.
+          //
+          // Un `ClipRRect` autour d'une vue native la fait recomposer : mesure
+          // du 6 novembre 2026, un `abandonAudioFocus()` a chaque bascule, la
+          // ou le meme ecran sans decoupe en comptait zero. C'est le bug qu'on
+          // venait de corriger. Quatre coins peints coutent un chemin et ne
+          // touchent a rien.
+          if (l.aUneVideo && montreLaVideo)
+            Positioned.fromRect(
+              rect: _cadreVideo!,
+              child: IgnorePointer(
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: CustomPaint(
+                      painter: _CoinsPeints(
+                        couleur: Theme.of(context).colorScheme.surface,
+                        rayon: 18,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
       bottomNavigationBar: _barreDesVolets(),
@@ -204,27 +229,41 @@ class _VueLecteurState extends State<VueLecteur> {
 
     return Column(
       children: [
-        const SizedBox(height: 8),
         Expanded(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: AspectRatio(
                 key: _creneau,
                 aspectRatio: 1,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(18),
-                  // Quand la video se montre, ce carre lui cede la place : le
-                  // lecteur n'est pas ici, il est pose par-dessus depuis la
-                  // pile, pour ne jamais changer de noeud.
-                  child: l.videoVisible && l.aUneVideo
-                      ? const SizedBox.expand()
-                      : _grandePochette(titre),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(28),
+                    // La pochette ne flotte pas sur rien : une ombre large et
+                    // basse la decolle du fond sans l'encadrer.
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        blurRadius: 36,
+                        offset: const Offset(0, 18),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(28),
+                    // Quand la video se montre, ce carre lui cede la place :
+                    // le lecteur n'est pas ici, il est pose par-dessus depuis
+                    // la pile, pour ne jamais changer de noeud.
+                    child: l.videoVisible && l.aUneVideo
+                        ? const SizedBox.expand()
+                        : _grandePochette(titre),
+                  ),
                 ),
               ),
             ),
           ),
         ),
+        const SizedBox(height: 20),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28),
           child: Column(
@@ -232,29 +271,37 @@ class _VueLecteurState extends State<VueLecteur> {
               Text(
                 titre.title,
                 maxLines: 1,
+                textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.3,
+                    ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
+              // L'artiste porte la couleur du projet. C'est le seul endroit
+              // de l'ecran ou un texte est colore, et c'est ce qui dit au
+              // premier coup d'oeil a qui on ecoute.
               Text(
                 titre.estRadio ? 'En direct' : titre.artistNames,
                 maxLines: 1,
+                textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: couleurs.onSurfaceVariant),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: couleurs.primary,
+                      fontWeight: FontWeight.w500,
+                    ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 22),
         _progression(titre),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         _transport(),
-        const SizedBox(height: 8),
+        const SizedBox(height: 22),
         _actions(titre),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
       ],
     );
   }
@@ -278,22 +325,43 @@ class _VueLecteurState extends State<VueLecteur> {
     final l = widget.lecture;
     final total = titre.duration.inMilliseconds;
 
+    final couleurs = Theme.of(context).colorScheme;
+    final chiffres = Theme.of(context).textTheme.labelMedium?.copyWith(
+      color: couleurs.onSurfaceVariant,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+
+    // Une radio n'a pas de fin : une barre serait un mensonge. On met a sa
+    // place le seul chiffre qui ait un sens, le temps ecoule.
     if (titre.estRadio) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 28),
-        child: Text('Flux continu'),
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: couleurs.secondary,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text('Flux continu', style: chiffres),
+          ],
+        ),
       );
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
-              trackHeight: 3,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+              trackShape: const RectangularSliderTrackShape(),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
             ),
             child: Slider(
               value: total == 0
@@ -303,15 +371,14 @@ class _VueLecteurState extends State<VueLecteur> {
                   l.seek(Duration(milliseconds: (v * total).round())),
             ),
           ),
+          const SizedBox(height: 2),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(duree(l.position),
-                    style: Theme.of(context).textTheme.bodySmall),
-                Text(duree(titre.duration),
-                    style: Theme.of(context).textTheme.bodySmall),
+                Text(duree(l.position), style: chiffres),
+                Text(duree(titre.duration), style: chiffres),
               ],
             ),
           ),
@@ -334,29 +401,42 @@ class _VueLecteurState extends State<VueLecteur> {
           tooltip: 'Aleatoire',
         ),
         IconButton(
-          iconSize: 34,
+          iconSize: 36,
           onPressed: l.precedent,
-          icon: const Icon(Icons.skip_previous),
+          icon: const Icon(Icons.skip_previous_rounded),
         ),
-        // Le gros bouton rond : la cible la plus facile a atteindre au pouce.
+        // Le gros bouton rond : la cible la plus facile a atteindre au pouce,
+        // et le seul aplat de couleur de l'ecran. La lueur sous lui n'est pas
+        // decorative — elle le pose au-dessus des autres au lieu de le laisser
+        // flotter dans le noir.
         Container(
-          width: 68,
-          height: 68,
+          width: 76,
+          height: 76,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: couleurs.primary,
+            boxShadow: [
+              BoxShadow(
+                color: couleurs.primary.withValues(alpha: 0.28),
+                blurRadius: 26,
+                spreadRadius: 1,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
           child: IconButton(
-            iconSize: 34,
+            iconSize: 38,
             color: couleurs.onPrimary,
             onPressed: l.togglePlayPause,
-            icon: Icon(l.enLecture ? Icons.pause : Icons.play_arrow),
+            icon: Icon(
+              l.enLecture ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            ),
           ),
         ),
         IconButton(
-          iconSize: 34,
+          iconSize: 36,
           onPressed: l.suivant,
-          icon: const Icon(Icons.skip_next),
+          icon: const Icon(Icons.skip_next_rounded),
         ),
         IconButton(
           onPressed: l.cyclerRepetition,
@@ -369,17 +449,38 @@ class _VueLecteurState extends State<VueLecteur> {
             Repetition.titre => 'Repeter le titre',
           },
           icon: Icon(
-            l.repetition == Repetition.titre
-                ? Icons.repeat_one
-                : Icons.repeat,
+            l.repetition == Repetition.titre ? Icons.repeat_one : Icons.repeat,
           ),
         ),
       ],
     );
   }
 
+  /// Les actions secondaires tiennent dans une capsule.
+  ///
+  /// Posees a nu sur le fond, elles avaient le meme poids visuel que le
+  /// transport juste au-dessus et se disputaient l'oeil. Regroupees sur une
+  /// surface, elles redeviennent ce qu'elles sont : un second rang.
   Widget _actions(Track titre) {
     final l = widget.lecture;
+    final couleurs = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          // Une surface plus haute que la barre du bas : empilees dans la
+          // meme teinte, les deux capsules se lisaient comme un seul bloc.
+          color: couleurs.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(26),
+        ),
+        child: _rangeeDActions(titre, l),
+      ),
+    );
+  }
+
+  Widget _rangeeDActions(Track titre, PlaybackController l) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
@@ -434,31 +535,15 @@ class _VueLecteurState extends State<VueLecteur> {
     );
   }
 
-  Widget _barreDesVolets() {
-    return NavigationBar(
-      height: 64,
-      selectedIndex: VoletLecteur.values.indexOf(_volet),
-      onDestinationSelected: (i) =>
-          setState(() => _volet = VoletLecteur.values[i]),
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.queue_music_outlined),
-          selectedIcon: Icon(Icons.queue_music),
-          label: 'File',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.play_circle_outline),
-          selectedIcon: Icon(Icons.play_circle),
-          label: 'Lecture',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.lyrics_outlined),
-          selectedIcon: Icon(Icons.lyrics),
-          label: 'Paroles',
-        ),
-      ],
-    );
-  }
+  Widget _barreDesVolets() => BarreFlottante(
+        onglets: const [
+          Onglet(Icons.queue_music_rounded, 'File'),
+          Onglet(Icons.play_circle_rounded, 'Lecture'),
+          Onglet(Icons.lyrics_rounded, 'Paroles'),
+        ],
+        choisi: VoletLecteur.values.indexOf(_volet),
+        surChoix: (i) => setState(() => _volet = VoletLecteur.values[i]),
+      );
 }
 
 class _Action extends StatelessWidget {
@@ -477,7 +562,8 @@ class _Action extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final couleurs = Theme.of(context).colorScheme;
-    final couleur = actif ? couleurs.onSurface : couleurs.onSurface.withValues(alpha: 0.3);
+    final couleur =
+        actif ? couleurs.onSurface : couleurs.onSurface.withValues(alpha: 0.3);
     return TextButton(
       onPressed: actif ? surClic : null,
       child: Column(
@@ -519,8 +605,8 @@ class _VoletFile extends StatelessWidget {
             margin: EdgeInsets.zero,
             child: ListTile(
               leading: Pochette(url: courant.artworkUrl, taille: 44),
-              title: Text(courant.title, maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
+              title: Text(courant.title,
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text(
                 courant.estRadio ? 'En direct' : courant.artistNames,
                 maxLines: 1,
@@ -635,3 +721,29 @@ class LigneTitre extends StatelessWidget {
   }
 }
 
+/// Peint les quatre coins d'un rectangle dans la couleur du fond, pour
+/// arrondir ce qui est dessous sans y toucher.
+class _CoinsPeints extends CustomPainter {
+  const _CoinsPeints({required this.couleur, required this.rayon});
+
+  final Color couleur;
+  final double rayon;
+
+  @override
+  void paint(Canvas toile, Size taille) {
+    final cadre = Offset.zero & taille;
+    final dehors = Path()..addRect(cadre);
+    final dedans = Path()
+      ..addRRect(RRect.fromRectAndRadius(cadre, Radius.circular(rayon)));
+    toile.drawPath(
+      Path.combine(PathOperation.difference, dehors, dedans),
+      Paint()
+        ..color = couleur
+        ..isAntiAlias = true,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_CoinsPeints ancien) =>
+      ancien.couleur != couleur || ancien.rayon != rayon;
+}

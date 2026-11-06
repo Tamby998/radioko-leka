@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'player/playback_controller.dart';
 import 'player/service_arriere_plan.dart';
 import 'services/api_client.dart';
+import 'ui/barre_flottante.dart';
 import 'ui/rayons.dart';
 import 'ui/lecteur.dart';
 import 'ui/listes.dart';
@@ -23,6 +24,32 @@ const apiBaseUrl = String.fromEnvironment(
 /// premiere, « leka » pour la seconde. Memes valeurs que l'app macOS.
 const couleurRadio = Color(0xFFF2C94C);
 const couleurLeka = Color(0xFF7BD88F);
+
+/// Les surfaces sont neutres, et c'est voulu.
+///
+/// `ColorScheme.fromSeed` teinte tout avec la graine : le fond sortait a
+/// (22, 19, 11), un brun que personne n'avait choisi et qui tirait l'app vers
+/// le sale. Une seule couleur doit chanter — l'or de « radio » — et elle ne
+/// chante que sur du neutre.
+const _fond = Color(0xFF0E0E11);
+const _surface = Color(0xFF17171B);
+const _surfaceHaute = Color(0xFF212127);
+
+final schemaSombre = const ColorScheme.dark().copyWith(
+  primary: couleurRadio,
+  onPrimary: const Color(0xFF1A1503),
+  secondary: couleurLeka,
+  onSecondary: const Color(0xFF05140A),
+  surface: _fond,
+  onSurface: const Color(0xFFF4F4F6),
+  surfaceContainerLow: _surface,
+  surfaceContainer: _surface,
+  surfaceContainerHigh: _surfaceHaute,
+  surfaceContainerHighest: _surfaceHaute,
+  onSurfaceVariant: const Color(0xFF9A9AA4),
+  outline: const Color(0xFF34343C),
+  outlineVariant: const Color(0xFF26262D),
+);
 
 /// Le service d'arriere-plan se monte avant l'ecran.
 ///
@@ -86,20 +113,45 @@ class _RadiokoLekaAppState extends State<RadiokoLekaApp> {
 
   @override
   Widget build(BuildContext context) {
-    final sombre = ColorScheme.fromSeed(
-      seedColor: couleurRadio,
-      brightness: Brightness.dark,
-    ).copyWith(secondary: couleurLeka);
+    final sombre = ThemeData(
+      useMaterial3: true,
+      colorScheme: schemaSombre,
+      scaffoldBackgroundColor: schemaSombre.surface,
+      appBarTheme: AppBarTheme(
+        backgroundColor: schemaSombre.surface,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+      ),
+      // Des coins francs et larges : c'est ce qui donne aux ecrans leur
+      // parente, plus que n'importe quelle couleur.
+      cardTheme: const CardThemeData(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(20)),
+        ),
+      ),
+      sliderTheme: SliderThemeData(
+        trackHeight: 3,
+        activeTrackColor: schemaSombre.primary,
+        inactiveTrackColor: schemaSombre.outlineVariant,
+        thumbColor: schemaSombre.primary,
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+        overlayColor: schemaSombre.primary.withValues(alpha: 0.12),
+      ),
+      listTileTheme: const ListTileThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(14)),
+        ),
+      ),
+    );
 
     return MaterialApp(
       title: 'RadiokoLeka',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: couleurRadio)
-            .copyWith(secondary: couleurLeka),
-      ),
-      darkTheme: ThemeData(useMaterial3: true, colorScheme: sombre),
+      theme: sombre,
+      darkTheme: sombre,
       themeMode: ThemeMode.dark,
       home: Accueil(api: _api, lecture: _lecture),
     );
@@ -131,13 +183,13 @@ class _AccueilState extends State<Accueil> {
             const EnTete(),
             Expanded(
               child: IndexedStack(
-          index: _onglet,
-          children: [
-            VueRadios(api: widget.api, lecture: widget.lecture),
-            VueRayons(api: widget.api, lecture: widget.lecture),
-            VueRecherche(api: widget.api, lecture: widget.lecture),
-            VueListes(api: widget.api, lecture: widget.lecture),
-          ],
+                index: _onglet,
+                children: [
+                  VueRadios(api: widget.api, lecture: widget.lecture),
+                  VueRayons(api: widget.api, lecture: widget.lecture),
+                  VueRecherche(api: widget.api, lecture: widget.lecture),
+                  VueListes(api: widget.api, lecture: widget.lecture),
+                ],
               ),
             ),
           ],
@@ -147,30 +199,15 @@ class _AccueilState extends State<Accueil> {
         mainAxisSize: MainAxisSize.min,
         children: [
           BarreDuTitre(api: widget.api, lecture: widget.lecture),
-          NavigationBar(
-            selectedIndex: _onglet,
-            onDestinationSelected: (i) => setState(() => _onglet = i),
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.radio_outlined),
-                selectedIcon: Icon(Icons.radio),
-                label: 'Radios',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.library_music_outlined),
-                selectedIcon: Icon(Icons.library_music),
-                label: 'Rayons',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.search),
-                label: 'Recherche',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.queue_music_outlined),
-                selectedIcon: Icon(Icons.queue_music),
-                label: 'Listes',
-              ),
+          BarreFlottante(
+            onglets: const [
+              Onglet(Icons.radio_rounded, 'Radios'),
+              Onglet(Icons.library_music_rounded, 'Rayons'),
+              Onglet(Icons.search_rounded, 'Recherche'),
+              Onglet(Icons.queue_music_rounded, 'Listes'),
             ],
+            choisi: _onglet,
+            surChoix: (i) => setState(() => _onglet = i),
           ),
         ],
       ),
@@ -222,57 +259,66 @@ class BarreDuTitre extends StatelessWidget {
         if (titre == null) return const SizedBox.shrink();
 
         final couleurs = Theme.of(context).colorScheme;
-        return Material(
-          color: couleurs.surfaceContainerHigh,
-          child: InkWell(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => VueLecteur(
-                  api: api,
-                  lecture: lecture,
-                  titre: titre,
+        // Une carte posee, de la meme famille que la barre juste en dessous :
+        // deux bandes pleine largeur empilees fermaient le bas de l'ecran.
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+          child: Material(
+            color: couleurs.surfaceContainerHigh,
+            clipBehavior: Clip.antiAlias,
+            borderRadius: BorderRadius.circular(20),
+            child: InkWell(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => VueLecteur(
+                    api: api,
+                    lecture: lecture,
+                    titre: titre,
+                  ),
                 ),
               ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  Pochette(url: titre.artworkUrl, taille: 44),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          titre.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                        Text(
-                          titre.estRadio ? 'En direct' : titre.artistNames,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: couleurs.onSurfaceVariant,
-                              ),
-                        ),
-                      ],
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Row(
+                  children: [
+                    Pochette(url: titre.artworkUrl, taille: 44),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            titre.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          Text(
+                            titre.estRadio ? 'En direct' : titre.artistNames,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: couleurs.onSurfaceVariant,
+                                    ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: lecture.togglePlayPause,
-                    icon: Icon(
-                      lecture.enLecture ? Icons.pause : Icons.play_arrow,
+                    IconButton(
+                      onPressed: lecture.togglePlayPause,
+                      icon: Icon(
+                        lecture.enLecture ? Icons.pause : Icons.play_arrow,
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: lecture.suivant,
-                    icon: const Icon(Icons.skip_next),
-                  ),
-                ],
+                    IconButton(
+                      onPressed: lecture.suivant,
+                      icon: const Icon(Icons.skip_next),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
