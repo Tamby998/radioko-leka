@@ -6,6 +6,7 @@ import 'player/service_arriere_plan.dart';
 import 'services/api_client.dart';
 import 'ui/barre_flottante.dart';
 import 'ui/image_pochette.dart';
+import 'ui/ouverture.dart';
 import 'ui/rayons.dart';
 import 'ui/lecteur.dart';
 import 'ui/listes.dart';
@@ -165,7 +166,10 @@ class _RadiokoLekaAppState extends State<RadiokoLekaApp> {
       theme: sombre,
       darkTheme: sombre,
       themeMode: ThemeMode.dark,
-      home: Accueil(api: _api, lecture: _lecture),
+      // L'ouverture se pose par-dessus l'accueil, qui est construit dessous
+      // des la premiere frame : les appels reseau partent pendant qu'elle
+      // joue, et la liste est la quand le voile se leve.
+      home: Ouverture(enfant: Accueil(api: _api, lecture: _lecture)),
     );
   }
 }
