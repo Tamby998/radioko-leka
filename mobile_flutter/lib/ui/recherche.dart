@@ -80,11 +80,30 @@ class _VueRechercheState extends State<VueRecherche> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Text(
+            'Recherche',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.4,
+                ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
           child: SearchBar(
             controller: _saisie,
             hintText: 'Un artiste, un titre, une radio…',
-            leading: const Icon(Icons.search),
+            leading: const Icon(Icons.search_rounded),
+            elevation: const WidgetStatePropertyAll(0),
+            backgroundColor: WidgetStatePropertyAll(
+              Theme.of(context).colorScheme.surfaceContainer,
+            ),
+            shape: WidgetStatePropertyAll(
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(22),
+              ),
+            ),
             onChanged: _surSaisie,
             onSubmitted: _chercher,
           ),
@@ -136,7 +155,7 @@ class _VueRechercheState extends State<VueRecherche> {
     }
     return ListView.separated(
       itemCount: _resultats.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, __) => const SizedBox(height: 2),
       itemBuilder: (_, i) => LigneTitre(
         titre: _resultats[i],
         api: widget.api,

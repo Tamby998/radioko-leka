@@ -43,8 +43,8 @@ class _VueRadiosState extends State<VueRadios> {
       // de radios celui qui en voulait.
       final pays = _paysDisponibles.isEmpty
           ? await widget.api.paysDesRadios().catchError(
-              (_) => const <({String code, String nom, int stations})>[],
-            )
+                (_) => const <({String code, String nom, int stations})>[],
+              )
           : _paysDisponibles;
       if (!mounted) return;
       setState(() {
@@ -63,18 +63,25 @@ class _VueRadiosState extends State<VueRadios> {
     return Column(
       children: [
         _selecteurDePays(),
-        const Divider(height: 1),
         Expanded(child: _corps()),
       ],
     );
   }
 
   Widget _selecteurDePays() {
+    final couleurs = Theme.of(context).colorScheme;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 8, 10, 12),
       child: Row(
         children: [
-          Text('Radios', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Radios',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.4,
+                ),
+          ),
           const SizedBox(width: 12),
           if (_paysDisponibles.isEmpty)
             const SizedBox.shrink()
@@ -83,29 +90,40 @@ class _VueRadiosState extends State<VueRadios> {
             // son item le plus large — « United States of America (312) » —
             // et vient recouvrir le titre sur un ecran de telephone.
             Flexible(
-              child: DropdownButton<String>(
-              value: _pays,
-              isExpanded: true,
-              alignment: Alignment.centerRight,
-              underline: const SizedBox.shrink(),
-              items: [
-                for (final p in _paysDisponibles)
-                  DropdownMenuItem(
-                    value: p.code,
-                    child: Text(
-                      '${p.nom} (${p.stations})',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.right,
-                    ),
-                  ),
-              ],
-              onChanged: (code) {
-                if (code == null || code == _pays) return;
-                setState(() => _pays = code);
-                _charger();
-              },
-            ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  // Une pastille, pas un menu nu : le pays est un filtre, il
+                  // doit se lire comme un bouton et non comme du texte.
+                  color: couleurs.surfaceContainer,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: DropdownButton<String>(
+                  value: _pays,
+                  isExpanded: true,
+                  alignment: Alignment.centerRight,
+                  borderRadius: BorderRadius.circular(18),
+                  dropdownColor: couleurs.surfaceContainerHigh,
+                  underline: const SizedBox.shrink(),
+                  items: [
+                    for (final p in _paysDisponibles)
+                      DropdownMenuItem(
+                        value: p.code,
+                        child: Text(
+                          '${p.nom} (${p.stations})',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
+                  ],
+                  onChanged: (code) {
+                    if (code == null || code == _pays) return;
+                    setState(() => _pays = code);
+                    _charger();
+                  },
+                ),
+              ),
             ),
         ],
       ),
@@ -124,7 +142,7 @@ class _VueRadiosState extends State<VueRadios> {
       onRefresh: _charger,
       child: ListView.separated(
         itemCount: _stations.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
+        separatorBuilder: (_, __) => const SizedBox(height: 2),
         itemBuilder: (_, i) => LigneTitre(
           titre: _stations[i],
           api: widget.api,

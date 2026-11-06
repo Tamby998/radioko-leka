@@ -309,7 +309,7 @@ class _VueUneListe extends StatelessWidget {
               ? const Center(child: Text('Cette liste est vide.'))
               : ListView.separated(
                   itemCount: titres.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, __) => const SizedBox(height: 2),
                   itemBuilder: (_, i) => Dismissible(
                     key: ValueKey(titres[i].uri),
                     direction: DismissDirection.endToStart,

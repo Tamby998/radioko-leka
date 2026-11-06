@@ -694,29 +694,91 @@ class LigneTitre extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Pochette(url: titre.artworkUrl, taille: 48),
-      title: Text(titre.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        titre.estRadio ? 'En direct' : titre.artistNames,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: IconButton(
-        icon: const Icon(Icons.more_vert, size: 20),
-        onPressed: () => montrerAjoutAListe(context, titre),
-      ),
-      onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (_) => VueLecteur(
-            api: api,
-            lecture: lecture,
-            titre: titre,
-            liste: liste,
-            depart: rang,
+    final couleurs = Theme.of(context).colorScheme;
+
+    return ListenableBuilder(
+      listenable: lecture,
+      builder: (context, _) {
+        // Le titre en cours se signale dans la liste. Sans cela on perd de
+        // vue ce qui joue des qu'on fait defiler, et on relance le meme
+        // morceau en croyant en lancer un autre.
+        final enCours = lecture.current?.uri == titre.uri;
+
+        return InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => VueLecteur(
+                api: api,
+                lecture: lecture,
+                titre: titre,
+                liste: liste,
+                depart: rang,
+              ),
+            ),
           ),
-        ),
-      ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 6, 8),
+            child: Row(
+              children: [
+                Pochette(url: titre.artworkUrl, taille: 54),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        titre.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: enCours ? couleurs.primary : null,
+                            ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        titre.estRadio ? 'En direct' : titre.artistNames,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: couleurs.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (enCours)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Icon(
+                      lecture.enLecture
+                          ? Icons.graphic_eq_rounded
+                          : Icons.pause_rounded,
+                      size: 18,
+                      color: couleurs.primary,
+                    ),
+                  )
+                else if (!titre.estRadio && titre.duration > Duration.zero)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Text(
+                      duree(titre.duration),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: couleurs.onSurfaceVariant,
+                          ),
+                    ),
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.more_vert_rounded, size: 20),
+                  color: couleurs.onSurfaceVariant,
+                  onPressed: () => montrerAjoutAListe(context, titre),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

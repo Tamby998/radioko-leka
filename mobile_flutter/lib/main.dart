@@ -338,11 +338,16 @@ class Pochette extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final couleurs = Theme.of(context).colorScheme;
     final repli = Container(
       width: taille,
       height: taille,
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      child: Icon(Icons.music_note, size: taille * 0.5),
+      color: couleurs.surfaceContainerHigh,
+      child: Icon(
+        Icons.music_note_rounded,
+        size: taille * 0.42,
+        color: couleurs.onSurfaceVariant,
+      ),
     );
 
     // Le SizedBox n est pas decoratif : sur le web, une image refusee par
@@ -353,7 +358,9 @@ class Pochette extends StatelessWidget {
       width: taille,
       height: taille,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(6),
+        // Le rayon suit la taille : 6 sur une vignette de liste faisait un
+        // carre a peine adouci a cote d'une pochette de lecture a 28.
+        borderRadius: BorderRadius.circular(taille * 0.26),
         child: url == null
             ? repli
             : Image.network(
