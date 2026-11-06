@@ -4,6 +4,16 @@
          qu'aucune erreur ne le dise. -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- Lecture en arriere-plan. Sans service au premier plan, Android coupe
+         le son des que l'app quitte l'ecran ; sans WAKE_LOCK, il le coupe
+         quand l'ecran s'eteint. La notification est le prix a payer, et elle
+         est de toute facon ce que l'utilisateur attend pour mettre en pause
+         sans rouvrir l'app. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
     <application
         android:label="RadiokoLeka"
         android:name="${applicationName}"
@@ -37,6 +47,28 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Le service de lecture et le recepteur des boutons du casque.
+             Declares ici et nulle part ailleurs : sans ces deux lignes,
+             `AudioService.init` echoue avec « Unable to start service ...
+             MediaBrowserService: not found », et le son s'arrete des qu'on
+             masque l'app — sans qu'aucune erreur ne le dise a l'ecran. -->
+        <service
+            android:name="com.ryanheise.audioservice.AudioService"
+            android:foregroundServiceType="mediaPlayback"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService"/>
+            </intent-filter>
+        </service>
+
+        <receiver
+            android:name="com.ryanheise.audioservice.MediaButtonReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON"/>
+            </intent-filter>
+        </receiver>
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

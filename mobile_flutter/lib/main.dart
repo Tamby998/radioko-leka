@@ -1,6 +1,8 @@
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 
 import 'player/playback_controller.dart';
+import 'player/service_arriere_plan.dart';
 import 'services/api_client.dart';
 import 'ui/rayons.dart';
 import 'ui/lecteur.dart';
@@ -22,10 +24,41 @@ const apiBaseUrl = String.fromEnvironment(
 const couleurRadio = Color(0xFFF2C94C);
 const couleurLeka = Color(0xFF7BD88F);
 
-void main() => runApp(const RadiokoLekaApp());
+/// Le service d'arriere-plan se monte avant l'ecran.
+///
+/// Sans lui, Android coupe le son des que l'app n'est plus affichee : il faut
+/// un service au premier plan pour qu'une lecture survive au passage en
+/// arriere-plan. Il ne s'allume que pour ce qui a le droit de jouer sans
+/// etre regarde — voir [ServiceArrierePlan].
+///
+/// Si l'initialisation echoue, l'app demarre quand meme : mieux vaut une
+/// lecture qui s'arrete quand on masque l'ecran qu'une app qui ne s'ouvre
+/// pas.
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  ServiceArrierePlan? service;
+  try {
+    service = await AudioService.init(
+      builder: ServiceArrierePlan.new,
+      config: const AudioServiceConfig(
+        androidNotificationChannelId: 'xyz.radiokoleka.app.lecture',
+        androidNotificationChannelName: 'Lecture',
+        androidNotificationOngoing: true,
+        androidStopForegroundOnPause: true,
+      ),
+    );
+  } catch (_) {
+    service = null;
+  }
+
+  runApp(RadiokoLekaApp(service: service));
+}
 
 class RadiokoLekaApp extends StatefulWidget {
-  const RadiokoLekaApp({super.key});
+  const RadiokoLekaApp({super.key, this.service});
+
+  final ServiceArrierePlan? service;
 
   @override
   State<RadiokoLekaApp> createState() => _RadiokoLekaAppState();
@@ -33,7 +66,8 @@ class RadiokoLekaApp extends StatefulWidget {
 
 class _RadiokoLekaAppState extends State<RadiokoLekaApp> {
   final RadiokoLekaApi _api = RadiokoLekaApi(baseUrl: apiBaseUrl);
-  final PlaybackController _lecture = PlaybackController();
+  late final PlaybackController _lecture =
+      PlaybackController(service: widget.service);
 
   @override
   void initState() {

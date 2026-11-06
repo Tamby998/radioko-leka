@@ -6,6 +6,7 @@ import 'package:just_audio/just_audio.dart';
 
 import '../models/track.dart';
 import 'lecteur_web.dart';
+import 'service_arriere_plan.dart';
 
 /// Moteur retenu pour le titre courant.
 enum PlaybackEngine {
@@ -26,7 +27,28 @@ enum Repetition { aucune, titre, liste }
 /// [Capability.audioOnly] ne touche jamais `just_audio`, et aucun chemin ne
 /// permet d'en extraire un flux.
 class PlaybackController extends ChangeNotifier {
-  PlaybackController();
+  PlaybackController({this.service}) {
+    final s = service;
+    if (s == null) return;
+    // Les boutons de la notification, du casque et de l'ecran verrouille
+    // arrivent ici : le service ne joue rien, il relaie.
+    // Precises, et non `togglePlayPause` : la notification sait ce qu'elle
+    // demande, et une demande de lecture ne doit jamais mettre en pause.
+    s.surLecture = reprendre;
+    s.surPause = mettreEnPause;
+    s.surSuivant = suivant;
+    s.surPrecedent = precedent;
+    s.surDeplacement = seek;
+    s.surArret = () async {
+      await _demonter();
+      notifyListeners();
+    };
+    addListener(_annoncerAuSysteme);
+  }
+
+  /// Absent dans les tests, et sur une plateforme sans service : tout
+  /// fonctionne alors a l'identique, sans notification.
+  final ServiceArrierePlan? service;
 
   final AudioPlayer _audio = AudioPlayer();
   final Random _de = Random();
@@ -244,6 +266,31 @@ class PlaybackController extends ChangeNotifier {
     suivant();
   }
 
+  Future<void> reprendre() async {
+    if (enLecture) return;
+    await togglePlayPause();
+  }
+
+  Future<void> mettreEnPause() async {
+    if (!enLecture) return;
+    await togglePlayPause();
+  }
+
+  /// Dit au systeme ce qui passe, a chaque changement d'etat.
+  ///
+  /// Rien a publier sans titre, et rien non plus pour un titre qui exige un
+  /// lecteur visible : [ServiceArrierePlan.publier] s'en retire de lui-meme.
+  void _annoncerAuSysteme() {
+    final s = service;
+    final titre = current;
+    if (s == null) return;
+    if (titre == null) {
+      s.retirer();
+      return;
+    }
+    s.publier(titre: titre, enLecture: enLecture, position: _position);
+  }
+
   Future<void> togglePlayPause() async {
     switch (_engine) {
       case PlaybackEngine.licensedAudio:
@@ -288,6 +335,8 @@ class PlaybackController extends ChangeNotifier {
 
   @override
   Future<void> dispose() async {
+    if (service != null) removeListener(_annoncerAuSysteme);
+    service?.retirer();
     await _demonter();
     await _audio.dispose();
     super.dispose();
