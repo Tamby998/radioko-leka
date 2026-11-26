@@ -5,8 +5,24 @@ import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../models/track.dart';
+import 'flux_youtube.dart';
 import 'lecteur_web.dart';
 import 'service_arriere_plan.dart';
+
+/// Comment jouer un clip du catalogue mondial.
+///
+/// `true` : on resout l'adresse du flux audio et `just_audio` le joue, comme
+/// une radio — donc ecran eteint et app masquee, ce qui est la raison d'etre
+/// d'un lecteur audio.
+///
+/// `false` : on revient au lecteur IFrame officiel, qui doit rester affiche
+/// pour jouer. Conforme aux conditions de YouTube, mais le son se coupe des
+/// qu'on passe sur une autre app.
+///
+/// Le drapeau reste ici, et les deux chemins restent compiles, parce que la
+/// porte qu'emprunte le premier peut se fermer du jour au lendemain — voir
+/// [FluxYoutube].
+const bool fluxAudioYoutube = true;
 
 /// Moteur retenu pour le titre courant.
 enum PlaybackEngine {
@@ -52,6 +68,7 @@ class PlaybackController extends ChangeNotifier {
 
   final AudioPlayer _audio = AudioPlayer();
   final Random _de = Random();
+  final FluxYoutube _flux = FluxYoutube();
   LecteurWeb? _web;
 
   /// Dernier etat annonce par le lecteur officiel : 1 joue, 2 pause, 0 fini.
@@ -191,7 +208,7 @@ class PlaybackController extends ChangeNotifier {
   Future<void> _jouer(Track titre) async {
     await _demonter();
 
-    if (titre.can(Capability.audioOnly)) {
+    if (titre.can(Capability.audioOnly) || fluxAudioYoutube) {
       await _jouerAudio(titre);
     } else {
       _jouerYoutube(titre);
@@ -199,15 +216,38 @@ class PlaybackController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _jouerAudio(Track titre) async {
-    final url = titre.streamUrl;
-    if (url == null) {
-      throw StateError(
-        'Le titre ${titre.uri} porte audioOnly mais n a pas de streamUrl.',
-      );
+  /// L'adresse du flux : donnee par le Worker pour une radio et pour le
+  /// catalogue sous licence, resolue sur l'appareil pour un clip.
+  Future<String> _adresse(Track titre) async {
+    final connue = titre.streamUrl;
+    if (connue != null) return connue;
+    if (titre.externalId.isEmpty) {
+      throw StateError('Pas d adresse, et pas d identifiant, pour ${titre.uri}');
     }
+    return _flux.adresse(titre.externalId);
+  }
+
+  Future<void> _jouerAudio(Track titre) async {
     _engine = PlaybackEngine.licensedAudio;
-    await _audio.setUrl(url);
+
+    // `setUrl` leve pour une station morte, pour une adresse expiree, et aussi
+    // pour une station que le systeme refuse. Sans ce filet, l'erreur remontait
+    // jusqu'a l'ecran qui n'en faisait rien : le bouton restait sur « lecture »
+    // et plus rien n'arrivait, jamais.
+    final String url;
+    try {
+      url = await _adresse(titre);
+      await _audio.setUrl(url);
+    } catch (e) {
+      debugPrint('RadiokoLeka — lecture refusee pour ${titre.uri} : $e');
+      // Une adresse resolue a pu expirer : on l'oublie, pour que le prochain
+      // essai reparte d'une resolution fraiche.
+      if (titre.streamUrl == null) _flux.oublier(titre.externalId);
+      _engine = PlaybackEngine.none;
+      surRefusYoutube?.call(titre, -1);
+      notifyListeners();
+      return;
+    }
 
     _suiviPosition = _audio.positionStream.listen((p) {
       _position = p;
@@ -339,6 +379,7 @@ class PlaybackController extends ChangeNotifier {
     service?.retirer();
     await _demonter();
     await _audio.dispose();
+    _flux.dispose();
     super.dispose();
   }
 }

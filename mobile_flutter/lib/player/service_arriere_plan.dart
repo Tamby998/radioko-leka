@@ -10,13 +10,11 @@ import '../models/track.dart';
 /// un service au premier plan, sans lequel le systeme coupe le son des qu'on
 /// masque l'app.
 ///
-/// Il ne s'allume pas pour tout le monde. Un titre qui porte
-/// [Capability.background] — radios, catalogue sous licence — peut jouer sans
-/// etre regarde. Un titre en [Track.requiresVisiblePlayer] ne le peut pas :
-/// le rendu officiel de YouTube doit rester a l'ecran, et ecouter sans
-/// regarder est precisement ce que YouTube vend a part. On ne contourne pas,
-/// on se retire : [retirer] efface la notification et laisse le clip
-/// s'arreter de lui-meme.
+/// Il s'allume pour tout ce qui joue. La distinction d'avant — radios en
+/// arriere-plan, clips seulement a l'ecran — venait du lecteur IFrame, qui
+/// devait rester affiche pour jouer. Il n'est plus sur le chemin : un clip
+/// passe maintenant par son flux audio, et un flux audio s'ecoute sans etre
+/// regarde. Voir `fluxAudioYoutube` dans [PlaybackController].
 class ServiceArrierePlan extends BaseAudioHandler with SeekHandler {
   /// Branches par [PlaybackController] : le service ne connait pas la file,
   /// il ne fait que transmettre ce qu'on lui demande.
@@ -54,11 +52,6 @@ class ServiceArrierePlan extends BaseAudioHandler with SeekHandler {
     required bool enLecture,
     required Duration position,
   }) {
-    if (titre.requiresVisiblePlayer || !titre.can(Capability.background)) {
-      retirer();
-      return;
-    }
-
     mediaItem.add(MediaItem(
       id: titre.uri,
       title: titre.title,
