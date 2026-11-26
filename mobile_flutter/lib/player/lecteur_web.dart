@@ -4,6 +4,7 @@ import 'dart:ui' show Color;
 import 'package:flutter/foundation.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 /// Le pont vers la page du lecteur, servie par le Worker.
 ///
@@ -20,9 +21,25 @@ import 'package:webview_flutter_android/webview_flutter_android.dart';
 /// probleme.
 class LecteurWeb {
   LecteurWeb({required this.surEtat, required this.surErreur}) {
-    final params = defaultTargetPlatform == TargetPlatform.android
-        ? AndroidWebViewControllerCreationParams()
-        : const PlatformWebViewControllerCreationParams();
+    // Chaque hote a ses deux reglages, et ce sont les memes deux questions :
+    // le media a-t-il le droit de demarrer sans geste, et a-t-il le droit de
+    // rester dans son cadre.
+    //
+    // Sur iPhone, `allowsInlineMediaPlayback` vaut faux par defaut : WKWebView
+    // bascule alors tout clip en plein ecran natif. Mesure du 15 novembre
+    // 2026 sur iPhone 17 — la video prenait l'ecran entier, l'app derriere,
+    // et plus un seul bouton pour en sortir. Le lecteur de ce projet est
+    // justement monte hors cadre la plupart du temps : il lui faut rester ou
+    // on le met.
+    final params = switch (defaultTargetPlatform) {
+      TargetPlatform.android => AndroidWebViewControllerCreationParams(),
+      TargetPlatform.iOS || TargetPlatform.macOS =>
+        WebKitWebViewControllerCreationParams(
+          allowsInlineMediaPlayback: true,
+          mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
+        ),
+      _ => const PlatformWebViewControllerCreationParams(),
+    };
 
     _ctrl = WebViewController.fromPlatformCreationParams(params)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -91,17 +108,25 @@ class LecteurWeb {
       _ctrl.runJavaScript('aller(${ou.inMilliseconds})');
   Future<void> volume(int sur100) => _ctrl.runJavaScript('volume($sur100)');
 
-  /// La position vient du lecteur, jamais d une horloge locale : une horloge
-  /// continue d avancer quand le lecteur, lui, est bloque.
-  Future<Duration> position() async {
-    final r = await _ctrl.runJavaScriptReturningResult('position()');
-    final ms = int.tryParse(r.toString()) ?? 0;
-    return Duration(milliseconds: ms);
+  /// Chaque hote rend ses nombres a sa facon, et il faut lire les deux.
+  ///
+  /// Android rend la chaine `12345`, WKWebView un nombre dont `toString()`
+  /// donne `12345.0`. `int.tryParse` refuse la seconde forme et rendait zero :
+  /// sur iPhone le compteur restait a 0:00 pendant tout le morceau, la barre
+  /// ne bougeait pas, et le karaoke ne surlignait aucune ligne — mesure du
+  /// 15 novembre 2026 sur iPhone 17, clip en cours de lecture. `num` lit les
+  /// deux formes.
+  static Duration _millisecondes(Object? r) {
+    final n = r is num ? r : num.tryParse(r.toString());
+    if (n == null || !n.isFinite) return Duration.zero;
+    return Duration(milliseconds: n.round());
   }
 
-  Future<Duration> duree() async {
-    final r = await _ctrl.runJavaScriptReturningResult('duree()');
-    final ms = int.tryParse(r.toString()) ?? 0;
-    return Duration(milliseconds: ms);
-  }
+  /// La position vient du lecteur, jamais d une horloge locale : une horloge
+  /// continue d avancer quand le lecteur, lui, est bloque.
+  Future<Duration> position() async =>
+      _millisecondes(await _ctrl.runJavaScriptReturningResult('position()'));
+
+  Future<Duration> duree() async =>
+      _millisecondes(await _ctrl.runJavaScriptReturningResult('duree()'));
 }

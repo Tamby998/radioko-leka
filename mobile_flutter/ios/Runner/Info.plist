@@ -26,6 +26,26 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<!-- Sans ce mode, iOS suspend l'app quelques secondes apres qu'on la
+	     masque et le son s'arrete. Ecouter sans regarder est la raison d'etre
+	     de cette app : c'est la premiere ligne du contrat avec le systeme. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+	<!-- Beaucoup de stations malgaches ne servent qu'en http : Radio Don
+	     Bosco sur onair15.xdevel.com:9248, RDJ sur rdj966.net:8000. App
+	     Transport Security les bloque par defaut, et sans un mot — mesure du
+	     15 novembre 2026, le bouton restait sur lecture et rien ne venait.
+	     La derogation est limitee aux flux media : le reste de l'app, API
+	     comprise, reste en https obligatoire. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsArbitraryLoadsInMedia</key>
+		<true/>
+	</dict>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

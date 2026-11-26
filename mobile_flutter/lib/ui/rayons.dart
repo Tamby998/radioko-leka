@@ -252,10 +252,15 @@ class _VueRayonState extends State<VueRayon> {
         _ => ListView.separated(
             itemCount: _titres.length,
             separatorBuilder: (_, __) => const SizedBox(height: 2),
+            // La liste entiere part avec le titre clique, et son rang avec
+            // elle : sans ca le lecteur ne recoit qu'un morceau, « A suivre »
+            // reste vide et « suivant » n'a nulle part ou aller.
             itemBuilder: (_, i) => LigneTitre(
               titre: _titres[i],
               api: widget.api,
               lecture: widget.lecture,
+              liste: _titres,
+              rang: i,
             ),
           ),
       },

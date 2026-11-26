@@ -7,8 +7,15 @@ import 'package:flutter/material.dart';
 /// YouTube repond 404, et la case restait grise. Sur un rayon malgache, la
 /// moitie des titres n'avait pas de pochette pour cette seule raison.
 ///
-/// `hqdefault.jpg` existe toujours. On la demande en second, et seulement si
+/// `mqdefault.jpg` existe toujours. On la demande en second, et seulement si
 /// la premiere a echoue : rien n'est telecharge en trop quand tout va bien.
+///
+/// Pourquoi `mqdefault` et non `hqdefault`, plus grande : YouTube incruste
+/// des bandes noires dans `hqdefault` (480x360, du 4:3 pour une video 16:9).
+/// Elles ne sont pas un cadrage, elles sont dans les pixels — aucun `BoxFit`
+/// ne les enleve. Vu le 15 novembre 2026 sur iPhone : une liste entiere de
+/// vignettes barrees de noir en haut et en bas. `mqdefault` fait 320x180,
+/// pile le format de la video, et suffit partout ici.
 class ImagePochette extends StatefulWidget {
   const ImagePochette({
     super.key,
@@ -28,12 +35,12 @@ class ImagePochette extends StatefulWidget {
   final double? width;
   final double? height;
 
-  /// `https://i.ytimg.com/vi/<id>/maxresdefault.jpg` → la meme en `hqdefault`.
+  /// `https://i.ytimg.com/vi/<id>/maxresdefault.jpg` → la meme en `mqdefault`.
   /// Rend `null` pour toute autre adresse : on ne devine pas chez les autres.
   static String? _secondChoix(String url) {
     if (!url.contains('i.ytimg.com/vi/')) return null;
     if (!url.endsWith('/maxresdefault.jpg')) return null;
-    return url.replaceFirst('/maxresdefault.jpg', '/hqdefault.jpg');
+    return url.replaceFirst('/maxresdefault.jpg', '/mqdefault.jpg');
   }
 
   @override

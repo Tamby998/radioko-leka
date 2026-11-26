@@ -154,6 +154,8 @@ class _VueRadiosState extends State<VueRadios> {
           titre: _stations[i],
           api: widget.api,
           lecture: widget.lecture,
+          liste: _stations,
+          rang: i,
         ),
       ),
     );

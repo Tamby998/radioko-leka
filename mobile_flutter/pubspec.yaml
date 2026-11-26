@@ -21,6 +21,10 @@ dependencies:
   # YouTube refuse sur Android — voir lib/player/lecteur_web.dart.
   webview_flutter: ^4.14.0
   webview_flutter_android: ^4.10.0
+  # Direct, et non transitif : sans `allowsInlineMediaPlayback`, WKWebView
+  # fait passer tout clip en plein ecran natif sur iPhone — l'app disparait
+  # derriere la video, sans un bouton pour revenir.
+  webview_flutter_wkwebview: ^3.27.0
 
   # Radios et catalogue sous licence : audio natif, arriere-plan possible.
   just_audio: ^0.9.40

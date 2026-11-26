@@ -163,6 +163,8 @@ class _VueRechercheState extends State<VueRecherche> {
         titre: _resultats[i],
         api: widget.api,
         lecture: widget.lecture,
+        liste: _resultats,
+        rang: i,
       ),
     );
   }
