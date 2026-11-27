@@ -51,16 +51,19 @@ class ServiceArrierePlan extends BaseAudioHandler with SeekHandler {
     required Track titre,
     required bool enLecture,
     required Duration position,
+    /// La duree du fichier, quand le lecteur la connait. Celle du catalogue
+    /// n'est qu'une annonce, et elle est parfois plus courte que le morceau :
+    /// la barre de la notification se remplissait alors avant la fin.
+    Duration? duree,
   }) {
+    final totale = duree ?? titre.duration;
     mediaItem.add(MediaItem(
       id: titre.uri,
       title: titre.title,
       artist: titre.estRadio ? 'En direct' : titre.artistNames,
       // Une radio n'a pas de duree : la donner afficherait une barre qui
       // n'avance jamais.
-      duration: titre.estRadio || titre.duration == Duration.zero
-          ? null
-          : titre.duration,
+      duration: titre.estRadio || totale == Duration.zero ? null : totale,
       artUri: titre.artworkUrl == null ? null : Uri.parse(titre.artworkUrl!),
     ));
 

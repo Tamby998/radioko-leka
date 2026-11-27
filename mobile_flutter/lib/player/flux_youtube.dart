@@ -109,10 +109,10 @@ class FluxYoutube {
     return _identite = v;
   }
 
-  Future<String> adresse(String videoId) async {
+  Future<FluxAudio> adresse(String videoId) async {
     final connue = _cache[videoId];
     if (connue != null && connue.valableJusqua.isAfter(DateTime.now())) {
-      return connue.url;
+      return connue.flux;
     }
 
     final identite = await _visiteur();
@@ -165,18 +165,43 @@ class FluxYoutube {
     final mp4 = audio
         .where((f) => (f['mimeType'] as String? ?? '').contains('mp4'))
         .toList();
-    final choix = mp4.isNotEmpty ? mp4 : audio;
+    var choix = mp4.isNotEmpty ? mp4 : audio;
+
+    // Jamais un flux sous 44,1 kHz tant qu'il en existe un : l'itag 139 est du
+    // HE-AAC, dont le coeur est code a 22050 Hz et restitue a 44100. AVPlayer
+    // lit le timescale du conteneur et decode au double, donc il annonce une
+    // duree exactement doublee — mesure du 27 novembre 2026 : un titre fini a
+    // 3:03 affichait 6:08, et trois minutes de silence passaient avant
+    // l'enchainement.
+    final pleinTaux = choix
+        .where((f) =>
+            int.tryParse('${f['audioSampleRate'] ?? ''}') != null &&
+            int.parse('${f['audioSampleRate']}') >= 44100)
+        .toList();
+    if (pleinTaux.isNotEmpty) choix = pleinTaux;
+
     choix.sort(
       (a, b) => ((b['bitrate'] as num?) ?? 0).compareTo((a['bitrate'] as num?) ?? 0),
     );
 
-    final url = choix.first['url'] as String;
+    final retenu = choix.first;
+    final url = retenu['url'] as String;
+
+    // La duree que YouTube donne pour ce fichier precis, au milliseconde pres.
+    // Elle vaut mieux que celle du catalogue, qui est une annonce, et mieux
+    // que celle d'AVPlayer, qui est une estimation.
+    final ms = int.tryParse('${retenu['approxDurationMs'] ?? ''}');
+    final duree = ms == null || ms <= 0 ? null : Duration(milliseconds: ms);
+
     debugPrint(
-      'RadiokoLeka — $videoId : itag ${choix.first['itag']}, '
-      '${(((choix.first['bitrate'] as num?) ?? 0) / 1000).round()} kbps',
+      'RadiokoLeka — $videoId : itag ${retenu['itag']}, '
+      '${(((retenu['bitrate'] as num?) ?? 0) / 1000).round()} kbps, '
+      '${retenu['audioSampleRate']} Hz, duree ${duree?.inSeconds}s',
     );
-    _cache[videoId] = _Trouvee(url, DateTime.now().add(_duree));
-    return url;
+
+    final flux = FluxAudio(url, duree);
+    _cache[videoId] = _Trouvee(flux, DateTime.now().add(_duree));
+    return flux;
   }
 
   /// A appeler quand une adresse a ete refusee : elle a peut-etre expire, et
@@ -189,9 +214,20 @@ class FluxYoutube {
   }
 }
 
-class _Trouvee {
-  const _Trouvee(this.url, this.valableJusqua);
+/// Une adresse de flux, et la duree du fichier qu'elle sert.
+class FluxAudio {
+  const FluxAudio(this.url, this.duree);
 
   final String url;
+
+  /// `null` quand YouTube ne l'a pas donnee : on retombe alors sur ce
+  /// qu'annonce le lecteur.
+  final Duration? duree;
+}
+
+class _Trouvee {
+  const _Trouvee(this.flux, this.valableJusqua);
+
+  final FluxAudio flux;
   final DateTime valableJusqua;
 }

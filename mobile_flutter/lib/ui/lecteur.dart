@@ -320,7 +320,9 @@ class _VueLecteurState extends State<VueLecteur> {
 
   Widget _progression(Track titre) {
     final l = widget.lecture;
-    final total = titre.duration.inMilliseconds;
+    // La duree du fichier, et non celle que le catalogue annonce : la seconde
+    // est parfois plus courte, et la barre arrivait au bout avant le morceau.
+    final total = l.dureeDe(titre).inMilliseconds;
 
     final couleurs = Theme.of(context).colorScheme;
     final chiffres = Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -375,7 +377,7 @@ class _VueLecteurState extends State<VueLecteur> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(duree(l.position), style: chiffres),
-                Text(duree(titre.duration), style: chiffres),
+                Text(duree(l.dureeDe(titre)), style: chiffres),
               ],
             ),
           ),

@@ -83,6 +83,22 @@ class PlaybackController extends ChangeNotifier {
 
   StreamSubscription<Duration>? _suiviPosition;
   StreamSubscription<void>? _suiviFin;
+  StreamSubscription<Duration?>? _suiviDuree;
+
+  /// La duree que YouTube a donnee pour le fichier en cours, quand il en a
+  /// donne une. Tant qu'elle est la, celle du lecteur est ignoree.
+  Duration? _dureeAnnoncee;
+
+  /// Pour ne declencher l'enchainement qu'une fois par titre.
+  bool _finAtteinte = false;
+
+  /// La duree du fichier qui joue, quand le lecteur la connait.
+  ///
+  /// Celle du catalogue n'est qu'une annonce, et elle ment : mesure du
+  /// 27 novembre 2026, un titre annonce a 5:06 jouait encore a 6:21. La barre
+  /// etait pleine depuis une minute et quart, et pendant tout ce temps
+  /// l'enchainement paraissait bloque alors que le morceau n'etait pas fini.
+  Duration? _dureeReelle;
 
   bool _aleatoire = false;
   Repetition _repetition = Repetition.aucune;
@@ -103,6 +119,10 @@ class PlaybackController extends ChangeNotifier {
 
   PlaybackEngine get engine => _engine;
   Duration get position => _position;
+
+  /// Ce que l'ecran doit afficher a droite de la barre : la duree du fichier
+  /// si on la connait, l'annonce du catalogue sinon.
+  Duration dureeDe(Track titre) => _dureeReelle ?? titre.duration;
   LecteurWeb? get lecteurWeb => _web;
 
   bool get aleatoire => _aleatoire;
@@ -218,9 +238,9 @@ class PlaybackController extends ChangeNotifier {
 
   /// L'adresse du flux : donnee par le Worker pour une radio et pour le
   /// catalogue sous licence, resolue sur l'appareil pour un clip.
-  Future<String> _adresse(Track titre) async {
+  Future<FluxAudio> _adresse(Track titre) async {
     final connue = titre.streamUrl;
-    if (connue != null) return connue;
+    if (connue != null) return FluxAudio(connue, null);
     if (titre.externalId.isEmpty) {
       throw StateError('Pas d adresse, et pas d identifiant, pour ${titre.uri}');
     }
@@ -234,10 +254,10 @@ class PlaybackController extends ChangeNotifier {
     // pour une station que le systeme refuse. Sans ce filet, l'erreur remontait
     // jusqu'a l'ecran qui n'en faisait rien : le bouton restait sur « lecture »
     // et plus rien n'arrivait, jamais.
-    final String url;
+    final FluxAudio flux;
     try {
-      url = await _adresse(titre);
-      await _audio.setUrl(url);
+      flux = await _adresse(titre);
+      await _audio.setUrl(flux.url);
     } catch (e) {
       debugPrint('RadiokoLeka — lecture refusee pour ${titre.uri} : $e');
       // Une adresse resolue a pu expirer : on l'oublie, pour que le prochain
@@ -249,8 +269,23 @@ class PlaybackController extends ChangeNotifier {
       return;
     }
 
+    // Celle que YouTube donne pour ce fichier d'abord. Elle est exacte, la
+    // ou celle d'AVPlayer est une estimation qu'il lui arrive de doubler.
+    _dureeAnnoncee = flux.duree;
+    _dureeReelle = flux.duree ?? _audio.duration;
+    _finAtteinte = false;
+
     _suiviPosition = _audio.positionStream.listen((p) {
       _position = p;
+      _surveillerLaFin();
+      notifyListeners();
+    });
+
+    // Un repli, seulement quand YouTube n'a rien dit : la duree n'est connue
+    // qu'une fois l'entete du fichier lu, donc apres `setUrl`.
+    _suiviDuree = _audio.durationStream.listen((d) {
+      if (_dureeAnnoncee != null || d == _dureeReelle) return;
+      _dureeReelle = d;
       notifyListeners();
     });
 
@@ -260,6 +295,32 @@ class PlaybackController extends ChangeNotifier {
         .listen((_) => _surFin());
 
     await _audio.play();
+
+    // Pendant que celui-ci joue, on va chercher l'adresse du suivant.
+    unawaited(_prechargerSuivant());
+  }
+
+  /// Resout d'avance l'adresse du prochain titre, et la laisse dans le cache
+  /// de [FluxYoutube].
+  ///
+  /// Sans cela, chaque changement de morceau commence par un aller-retour
+  /// vers l'API de YouTube — 0,85 s mesure en fibre le 27 novembre 2026, bien
+  /// plus en 4G — avant meme que le premier octet d'audio soit demande.
+  ///
+  /// Rien a precharger en lecture aleatoire : on ne sait pas qui vient.
+  Future<void> _prechargerSuivant() async {
+    if (_aleatoire) return;
+    final i = _index + 1;
+    if (i < 0 || i >= _file.length) return;
+    final titre = _file[i];
+    if (titre.streamUrl != null || titre.externalId.isEmpty) return;
+    try {
+      await _flux.adresse(titre.externalId);
+    } catch (e) {
+      // Sans consequence : le vrai essai aura lieu au moment de jouer, et
+      // c'est lui qui decidera quoi dire.
+      debugPrint('RadiokoLeka — prechargement manque pour ${titre.uri} : $e');
+    }
   }
 
   void _jouerYoutube(Track titre) {
@@ -298,6 +359,24 @@ class PlaybackController extends ChangeNotifier {
   /// Appele quand YouTube refuse un clip, avec son code tel quel.
   void Function(Track titre, int code)? surRefusYoutube;
 
+  /// Enchaine quand le morceau est fini pour de bon, sans attendre que le
+  /// lecteur veuille bien le dire.
+  ///
+  /// `ProcessingState.completed` arrive a la fin du fichier *tel que le
+  /// lecteur l'a mesure*. Quand cette mesure est doublee, l'attente l'est
+  /// aussi : trois minutes de silence avant le titre suivant. La duree
+  /// annoncee par YouTube, elle, tombe juste.
+  void _surveillerLaFin() {
+    if (_finAtteinte) return;
+    final fin = _dureeAnnoncee;
+    if (fin == null || fin == Duration.zero) return;
+    // Une demi-seconde de marge : la derniere position publiee n'atteint pas
+    // toujours le dernier echantillon.
+    if (_position < fin - const Duration(milliseconds: 500)) return;
+    _finAtteinte = true;
+    _surFin();
+  }
+
   void _surFin() {
     if (_repetition == Repetition.titre) {
       seek(Duration.zero);
@@ -328,7 +407,12 @@ class PlaybackController extends ChangeNotifier {
       s.retirer();
       return;
     }
-    s.publier(titre: titre, enLecture: enLecture, position: _position);
+    s.publier(
+      titre: titre,
+      enLecture: enLecture,
+      position: _position,
+      duree: _dureeReelle,
+    );
   }
 
   Future<void> togglePlayPause() async {
@@ -353,14 +437,22 @@ class PlaybackController extends ChangeNotifier {
         break;
     }
     _position = to;
+    // Revenir en arriere rend sa fin au morceau : sans cela, « repeter ce
+    // titre » ne bouclerait qu'une fois.
+    if (to < (_dureeAnnoncee ?? Duration.zero)) _finAtteinte = false;
     notifyListeners();
   }
 
   Future<void> _demonter() async {
     await _suiviPosition?.cancel();
     await _suiviFin?.cancel();
+    await _suiviDuree?.cancel();
     _suiviPosition = null;
     _suiviFin = null;
+    _suiviDuree = null;
+    _dureeReelle = null;
+    _dureeAnnoncee = null;
+    _finAtteinte = false;
     _horloge?.cancel();
     _horloge = null;
 
